@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoLudo — a soil mechanics core sample</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f8f6f0;
+    --bg-elev:#ffffff;
+    --bg-card:#ffffff;
+    --topsoil:#8b9a6e;
+    --subsoil:#bb8264;
+    --weathered:#a49b8a;
+    --bedrock:#4a4038;
+    --core:#a9812f;
+    --core-dim:#d8c48b;
+    --ink:#23262d;
+    --ink-dim:#63677a;
+    --ink-faint:#9a9da8;
+    --rule:#e6e2d6;
+    --good:#3f7d55;
+    --bad:#a23b32;
+
+    --green:#2fa84f;
+    --yellow:#f0c419;
+    --red:#e0473f;
+    --blue:#2f6fd6;
+
+    --serif:'Fraunces', 'Iowan Old Style', 'Palatino Linotype', serif;
+    --sans:'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .hidden{display:none !important;}
+  button{font-family:inherit;cursor:pointer;}
+  button:focus-visible, [tabindex]:focus-visible, .pawn.movable:focus-visible{
+    outline:2px solid var(--core);
+    outline-offset:2px;
+  }
+
+  .topic-card, .swatch-card, .turn-card, .log-card, .toggle-row,
+  .editor-q-card, .modal-card, .count-btn, .board-panel{
+    box-shadow:0 1px 2px rgba(30,24,10,.05), 0 6px 20px rgba(30,24,10,.05);
+  }
+
+  /* ---------- shared layout ---------- */
+  .screen{
+    min-height:100vh;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:36px 20px 60px;
+  }
+  .wrap{width:100%;max-width:980px;}
+
+  .strata-bar{
+    display:flex;
+    width:100%;
+    border-radius:8px;
+    overflow:hidden;
+    height:10px;
+    margin-bottom:10px;
+    box-shadow:0 1px 0 rgba(0,0,0,.4) inset;
+  }
+  .strata-bar span{flex:1;}
+  .strata-bar .s-topsoil{background:var(--topsoil);}
+  .strata-bar .s-subsoil{background:var(--subsoil);}
+  .strata-bar .s-weathered{background:var(--weathered);}
+  .strata-bar .s-bedrock{background:var(--bedrock);}
+
+  .strata-labels{
+    display:flex;
+    width:100%;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.02em;
+    color:var(--ink-faint);
+    margin-bottom:34px;
+  }
+  .strata-labels span{flex:1;text-align:center;}
+
+  h1.title{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(34px, 5vw, 52px);
+    line-height:1.05;
+    margin:0 0 6px;
+  }
+  .kicker{
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--ink-dim);
+    margin:0 0 28px;
+    max-width:62ch;
+    line-height:1.5;
+  }
+
+  /* ---------- topic screen ---------- */
+  .topics-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .count-badge{
+    font-family:var(--mono);
+    font-size:14px;
+    color:var(--core);
+  }
+  .topic-actions{
+    display:flex;
+    gap:8px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .chip-btn{
+    background:transparent;
+    border:1px solid var(--rule);
+    color:var(--ink-dim);
+    padding:8px 14px;
+    border-radius:20px;
+    font-size:13px;
+    font-family:var(--sans);
+    transition:border-color .15s, color .15s;
+  }
+  .chip-btn:hover{border-color:var(--core-dim);color:var(--ink);}
+
+  .topic-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(255px, 1fr));
+    gap:12px;
+    margin-bottom:34px;
+  }
+  .topic-card{
+    text-align:left;
+    background:var(--bg-card);
+    border:1px solid var(--rule);
+    border-radius:10px;
+    padding:16px 16px 14px;
+    position:relative;
+    transition:border-color .15s, background .15s, transform .1s;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .topic-card:hover{transform:translateY(-1px);}
+  .topic-card.selected{
+    border-color:var(--core);
+    background:#faf3e0;
+  }
+  .topic-card .row1{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .topic-card .icon-name{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:16.5px;
+  }
+  .topic-card .emoji{font-size:19px;}
+  .topic-card .desc{
+    font-size:12.5px;
+    color:var(--ink-dim);
+    line-height:1.45;
+  }
+  .checkmark{
+    width:20px;height:20px;border-radius:5px;
+    border:1px solid var(--ink-faint);
+    flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;color:var(--ink);
+  }
+  .topic-card.selected .checkmark{
+    background:var(--core);
+    border-color:var(--core);
+  }
+
+  .primary-btn{
+    background:var(--core);
+    color:#2c2210;
+    border:none;
+    padding:15px 30px;
+    border-radius:8px;
+    font-size:15px;
+    font-weight:600;
+    font-family:var(--sans);
+    letter-spacing:.01em;
+    transition:filter .15s, transform .1s;
+  }
+  .primary-btn:hover{filter:brightness(1.08);}
+  .primary-btn:active{transform:translateY(1px);}
+  .primary-btn:disabled{
+    background:var(--rule);
+    color:var(--ink-faint);
+    cursor:not-allowed;
+  }
+  .ghost-btn{
+    background:transparent;
+    border:1px solid var(--rule);
+    color:var(--ink-dim);
+    padding:14px 24px;
+    border-radius:8px;
+    font-size:14px;
+  }
+  .ghost-btn:hover{color:var(--ink);border-color:var(--ink-faint);}
+
+  .bottom-bar{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:14px;
+  }
+
+  /* ---------- setup screen ---------- */
+  .setup-section{margin-bottom:34px;}
+  .setup-section h2{
+    font-family:var(--serif);
+    font-size:19px;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  .setup-section .sub{
+    font-size:13px;
+    color:var(--ink-dim);
+    margin:0 0 16px;
+  }
+  .player-count-row{
+    display:flex;
+    gap:10px;
+  }
+  .count-btn{
+    width:64px;height:64px;
+    border-radius:10px;
+    border:1px solid var(--rule);
+    background:var(--bg-card);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:24px;
+    display:flex;align-items:center;justify-content:center;
+    transition:border-color .15s, background .15s;
+  }
+  .count-btn.active{
+    border-color:var(--core);
+    background:#faf3e0;
+    color:var(--core);
+  }
+  .player-swatches{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .swatch-card{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--bg-card);
+    border:1px solid var(--rule);
+    border-radius:9px;
+    padding:10px 16px 10px 10px;
+  }
+  .swatch-dot{
+    width:26px;height:26px;border-radius:50%;
+    flex-shrink:0;
+    box-shadow:0 0 0 3px rgba(0,0,0,.35) inset;
+  }
+  .swatch-card .name{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:14.5px;
+  }
+  .swatch-card .sub-label{
+    font-family:var(--mono);
+    font-size:10.5px;
+    color:var(--ink-faint);
+  }
+  .toggle-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--bg-card);
+    border:1px solid var(--rule);
+    border-radius:9px;
+    padding:14px 16px;
+    max-width:460px;
+  }
+  .toggle-switch{
+    width:42px;height:24px;
+    border-radius:20px;
+    background:var(--rule);
+    position:relative;
+    flex-shrink:0;
+    border:none;
+    transition:background .15s;
+  }
+  .toggle-switch::after{
+    content:'';
+    position:absolute;
+    top:3px;left:3px;
+    width:18px;height:18px;
+    border-radius:50%;
+    background:var(--ink-dim);
+    transition:transform .15s, background .15s;
+  }
+  .toggle-switch.on{background:var(--core-dim);}
+  .toggle-switch.on::after{
+    transform:translateX(18px);
+    background:var(--core);
+  }
+  .toggle-row .label{font-size:13.5px;}
+  .toggle-row .label small{display:block;color:var(--ink-faint);font-size:11.5px;margin-top:2px;}
+
+  /* ---------- game screen ---------- */
+  .game-wrap{
+    display:grid;
+    grid-template-columns:minmax(0,560px) 300px;
+    gap:26px;
+    width:100%;
+    max-width:920px;
+    align-items:start;
+  }
+  @media (max-width:820px){
+    .game-wrap{grid-template-columns:1fr;}
+  }
+  .board-panel{
+    background:var(--bg-elev);
+    border:1px solid var(--rule);
+    border-radius:14px;
+    padding:16px;
+  }
+  .board-panel svg{width:100%;height:auto;display:block;border-radius:6px;}
+  .cell-track{fill:#f4ecd8;stroke:#cfc4a6;stroke-width:1.5;}
+  .cell-track.q{fill:#f7dd8f;stroke:#c9a24b;}
+  .cell-star{fill:#f4ecd8;stroke:#cfc4a6;stroke-width:1.5;}
+  .star-mark{fill:#8a7c5c;}
+  .center-tri{stroke:#f4ecd8;stroke-width:3;stroke-linejoin:round;}
+  .entry-arrow{stroke:#00000030;stroke-width:1;}
+
+  .side-panel{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .turn-card{
+    background:var(--bg-card);
+    border:1px solid var(--rule);
+    border-radius:12px;
+    padding:18px;
+  }
+  .turn-card .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--ink-faint);
+    margin-bottom:8px;
+  }
+  .turn-name{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:21px;
+    margin-bottom:16px;
+  }
+  .turn-dot{width:16px;height:16px;border-radius:50%;}
+
+  .dice-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+  .dice-face{
+    width:58px;height:58px;
+    border-radius:10px;
+    background:var(--bg);
+    border:1px solid var(--rule);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);
+    font-size:28px;
+    font-weight:600;
+    color:var(--core);
+  }
+  .roll-btn{
+    flex:1;
+    background:var(--core);
+    color:#241a08;
+    border:none;
+    border-radius:8px;
+    padding:15px 12px;
+    font-weight:600;
+    font-size:14px;
+  }
+  .roll-btn:disabled{background:var(--rule);color:var(--ink-faint);cursor:not-allowed;}
+
+  .hint-line{
+    margin-top:12px;
+    font-size:12.5px;
+    color:var(--ink-dim);
+    min-height:34px;
+    line-height:1.45;
+  }
+
+  .log-card{
+    background:var(--bg-card);
+    border:1px solid var(--rule);
+    border-radius:12px;
+    padding:16px 18px;
+    max-height:260px;
+    overflow-y:auto;
+  }
+  .log-card h3{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--ink-faint);
+    margin:0 0 10px;
+    letter-spacing:.03em;
+  }
+  .log-entry{
+    font-size:12.5px;
+    line-height:1.6;
+    color:var(--ink-dim);
+    border-bottom:1px solid var(--rule);
+    padding:6px 0;
+  }
+  .log-entry:last-child{border-bottom:none;}
+  .log-entry b{color:var(--ink);font-weight:600;}
+
+  .restart-link{
+    background:none;border:none;
+    color:var(--ink-faint);
+    font-size:12px;
+    text-decoration:underline;
+    padding:4px 0;
+    align-self:flex-start;
+  }
+  .restart-link:hover{color:var(--ink-dim);}
+
+  /* ---------- board svg elements ---------- */
+  .cell-ring{fill:var(--bg);stroke:var(--rule);stroke-width:2;}
+  .cell-ring.q{fill:#2a2113;stroke:var(--core-dim);}
+  .cell-ring.entry{stroke-width:3;}
+  .cell-home{stroke:var(--rule);stroke-width:2;}
+  .cell-home.q{stroke:var(--core-dim);}
+  .core-circle{fill:var(--core);}
+  .core-label{
+    font-family:var(--mono);
+    font-size:13px;
+    fill:#2c2210;
+    font-weight:600;
+  }
+  .yard-box{fill:var(--bg);stroke-width:2;rx:14;}
+  .pawn{
+    stroke:#000;stroke-opacity:.35;stroke-width:1.5;
+    transition:cx .35s ease, cy .35s ease;
+    cursor:default;
+  }
+  .pawn.movable{
+    cursor:pointer;
+    animation:pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ r:15; filter:drop-shadow(0 0 0 rgba(169,129,47,0)); }
+    50%{ r:18; filter:drop-shadow(0 0 6px rgba(169,129,47,.75)); }
+  }
+
+  /* ---------- modal ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;
+    background:rgba(10,8,6,.72);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+    z-index:50;
+  }
+  .modal-card{
+    background:var(--bg-elev);
+    border:1px solid var(--rule);
+    border-radius:14px;
+    padding:28px;
+    max-width:500px;
+    width:100%;
+  }
+  .q-tier-tag{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;
+    padding:4px 10px;
+    border-radius:20px;
+    margin-bottom:14px;
+    letter-spacing:.02em;
+  }
+  .q-topic{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--ink-faint);
+    margin-bottom:6px;
+  }
+  .q-text{
+    font-family:var(--serif);
+    font-size:19px;
+    line-height:1.4;
+    margin:0 0 20px;
+  }
+  .q-timer-track{
+    height:4px;background:var(--rule);
+    border-radius:3px;overflow:hidden;
+    margin-bottom:18px;
+  }
+  .q-timer-fill{height:100%;background:var(--core);transition:width 1s linear;}
+  .q-options{display:flex;flex-direction:column;gap:9px;margin-bottom:6px;}
+  .q-option{
+    text-align:left;
+    background:var(--bg-card);
+    border:1px solid var(--rule);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:14px;
+    color:var(--ink);
+    transition:border-color .12s, background .12s;
+  }
+  .q-option:hover:not(:disabled){border-color:var(--ink-faint);}
+  .q-option:disabled{cursor:default;}
+  .q-option.correct{border-color:var(--good);background:#eaf3ec;}
+  .q-option.incorrect{border-color:var(--bad);background:#f8ece9;}
+  .q-feedback{
+    margin-top:16px;
+    font-size:13.5px;
+    line-height:1.5;
+    color:var(--ink-dim);
+  }
+  .q-feedback b{color:var(--ink);}
+  .q-continue{
+    margin-top:18px;
+    width:100%;
+  }
+
+  .editor-card{max-width:720px;max-height:86vh;overflow-y:auto;}
+  .editor-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
+  .editor-head h2{font-family:var(--serif);font-size:20px;margin:0;}
+  .editor-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .editor-tabs .chip-btn.active-tab{border-color:var(--core);color:var(--ink);background:#faf3e0;}
+  .editor-q-card{background:var(--bg-card);border:1px solid var(--rule);border-radius:10px;padding:14px;margin-bottom:12px;}
+  .editor-input{width:100%;background:var(--bg);border:1px solid var(--rule);color:var(--ink);border-radius:6px;padding:8px 10px;font-family:var(--sans);font-size:13.5px;margin-bottom:8px;resize:vertical;}
+  .editor-opt-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .editor-opt-row input[type=text]{flex:1;margin-bottom:0;}
+  .editor-opt-row input[type=radio]{accent-color:var(--core);flex-shrink:0;}
+  .editor-foot{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+  .editor-note{font-size:11.5px;color:var(--ink-faint);margin-top:14px;line-height:1.5;}
+
+  .color-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .color-swatch-input{
+    width:44px;height:44px;border-radius:9px;
+    border:1px solid var(--rule);
+    padding:2px;background:var(--bg-card);
+    flex-shrink:0;
+  }
+  .color-name-input{margin-bottom:0;flex:1;}
+
+  .win-card{text-align:center;}
+  .win-card .emoji-big{font-size:44px;margin-bottom:10px;}
+  .win-card h2{font-family:var(--serif);font-size:26px;margin:0 0 8px;}
+  .win-card p{color:var(--ink-dim);font-size:14px;margin:0 0 22px;}
+
+  .footer-note{
+    margin-top:30px;
+    font-size:11.5px;
+    color:var(--ink-faint);
+    text-align:center;
+    max-width:60ch;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ SCREEN 1: TOPICS ============ -->
+  <section class="screen" id="screen-topics">
+    <div class="wrap">
+      <div class="strata-bar">
+        <span class="s-topsoil"></span><span class="s-subsoil"></span><span class="s-weathered"></span><span class="s-bedrock"></span>
+      </div>
+      <div class="strata-labels">
+        <span>Topsoil</span><span>Subsoil · Clay</span><span>Weathered rock</span><span>Bedrock</span>
+      </div>
+
+      <h1 class="title">Choose your topics</h1>
+      <p class="kicker">Every space marked <strong style="color:var(--core)">?</strong> on the board draws a question from what you select here. The closer a pawn gets to the core, the harder the questions get.</p>
+
+      <div class="topics-head">
+        <div class="count-badge" id="topic-count">4 / 9 selected</div>
+      </div>
+
+      <div class="topic-actions">
+        <button class="chip-btn" id="btn-select-all">Select all</button>
+        <button class="chip-btn" id="btn-clear">Clear</button>
+        <button class="chip-btn" id="btn-intro-set">Intro set (4)</button>
+        <button class="chip-btn" id="btn-edit-questions">Edit questions</button>
+      </div>
+
+      <div class="topic-grid" id="topic-grid"></div>
+
+      <div class="bottom-bar">
+        <button class="primary-btn" id="btn-to-setup">Set up players</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 2: SETUP ============ -->
+  <section class="screen hidden" id="screen-setup">
+    <div class="wrap">
+      <div class="strata-bar">
+        <span class="s-topsoil"></span><span class="s-subsoil"></span><span class="s-weathered"></span><span class="s-bedrock"></span>
+      </div>
+      <div class="strata-labels">
+        <span>Topsoil</span><span>Subsoil · Clay</span><span>Weathered rock</span><span>Bedrock</span>
+      </div>
+
+      <h1 class="title">Set up players</h1>
+      <p class="kicker" id="setup-kicker">Solo play is a self-paced core sample — race the die to get all four pawns home. Two to four players share one device, taking turns.</p>
+
+      <div class="setup-section">
+        <h2>Players</h2>
+        <p class="sub">How many are digging?</p>
+        <div class="player-count-row" id="player-count-row"></div>
+      </div>
+
+      <div class="setup-section">
+        <h2>Colors</h2>
+        <p class="sub" id="colors-sub">Assigned in turn order.</p>
+        <div class="player-swatches" id="player-swatches"></div>
+        <button class="chip-btn" id="btn-customize-colors" style="margin-top:12px;">Customize colors</button>
+      </div>
+
+      <div class="setup-section">
+        <h2>Timer</h2>
+        <div class="toggle-row">
+          <button class="toggle-switch" id="timer-toggle"></button>
+          <div class="label">Enable a 45-second answer timer<small>Competitive mode — run out the clock and it counts as a miss.</small></div>
+        </div>
+      </div>
+
+      <div class="bottom-bar">
+        <button class="ghost-btn" id="btn-back-topics">Back</button>
+        <button class="primary-btn" id="btn-begin">Begin excavation</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 3: GAME ============ -->
+  <section class="screen hidden" id="screen-game">
+    <div class="wrap">
+      <div class="game-wrap">
+        <div class="board-panel" id="board-panel"></div>
+
+        <div class="side-panel">
+          <div class="turn-card">
+            <div class="eyebrow">Current turn</div>
+            <div class="turn-name" id="turn-name"><span class="turn-dot" id="turn-dot"></span><span id="turn-name-text">—</span></div>
+
+            <div class="dice-row">
+              <div class="dice-face" id="dice-face">–</div>
+              <button class="roll-btn" id="roll-btn">Roll the die</button>
+            </div>
+            <div class="hint-line" id="hint-line">Roll a 6 to bring a pawn up from the yard.</div>
+          </div>
+
+          <div class="log-card">
+            <h3>Field log</h3>
+            <div id="log-list"></div>
+          </div>
+
+          <button class="restart-link" id="btn-restart">Start a new game</button>
+        </div>
+      </div>
+
+      <p class="footer-note">Adapted from the classic four-pawn race board game as a review tool for introductory soil mechanics. Works fully offline once loaded — no server, no account, nothing tracked.</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+
+  /* ============================================================
+     DATA
+  ============================================================ */
+
+  const TOPICS = [
+    { id:'index',       emoji:'🧱', name:'Index Properties & Classification', desc:'Atterberg limits, USCS, grain size', intro:true },
+    { id:'compaction',  emoji:'🔨', name:'Compaction', desc:'Proctor tests, OMC, dry unit weight', intro:true },
+    { id:'permeability',emoji:'💧', name:'Permeability & Seepage', desc:"Darcy's law, flow nets, k", intro:true },
+    { id:'effective',   emoji:'⚖️', name:'Effective Stress', desc:"Terzaghi's principle, pore pressure", intro:true },
+    { id:'consolidation',emoji:'⏳', name:'Consolidation & Settlement', desc:'Cc, Cv, time rate, OCR', intro:false },
+    { id:'shear',       emoji:'🪨', name:'Shear Strength', desc:'Mohr-Coulomb, triaxial, direct shear', intro:false },
+    { id:'lateral',     emoji:'🧰', name:'Lateral Earth Pressure', desc:'Rankine, Coulomb, retaining walls', intro:false },
+    { id:'bearing',     emoji:'🏗', name:'Bearing Capacity & Foundations', desc:"Terzaghi's equation, shallow footings", intro:false },
+    { id:'unsat',       emoji:'❄️', name:'Unsaturated Soils & Cold Regions', desc:'Matric suction, SWCC, frost heave', intro:false },
+  ];
+
+  const TIERS = ['topsoil','subsoil','weathered','bedrock'];
+  const TIER_LABEL = { topsoil:'Topsoil', subsoil:'Subsoil · Clay', weathered:'Weathered rock', bedrock:'Bedrock' };
+  const TIER_COLOR = { topsoil:'var(--topsoil)', subsoil:'var(--subsoil)', weathered:'var(--weathered)', bedrock:'var(--bedrock)' };
+
+  function Q(q, options, correct){ return { q, options, correct }; }
+
+  const DEFAULT_QUESTIONS = {
+    index: { topsoil:[
+        Q('What does the liquid limit (LL) mark?', ['The boundary between liquid and plastic states','The boundary between plastic and semi-solid states','The maximum dry density','The natural water content'],0),
+        Q('In the USCS, a soil with more than 50% retained on the No. 200 sieve is classified as:', ['Fine-grained','Coarse-grained','Organic','Peat'],1),
+      ], subsoil:[
+        Q('A soil has LL = 40% and PL = 20%. What is its plasticity index (PI)?', ['20','60','2','0.5'],0),
+        Q('Which USCS symbol denotes a well-graded sand with a clay binder?', ['SW-SC','CL','GP','MH'],0),
+      ], weathered:[
+        Q('A soil plots above the A-line with LL = 55%. Its USCS symbol is:', ['CH','MH','OL','CL'],0),
+        Q('The coefficient of uniformity Cu = D60/D10. A soil with Cu = 3 is best described as:', ['Uniformly graded','Well graded','Gap graded','Well compacted'],0),
+      ], bedrock:[
+        Q('For a soil to classify as SW under the USCS, it must satisfy Cu ≥ 6 and 1 ≤ Cc ≤ 3, where Cc equals:', ['(D30)² / (D10 × D60)','D60 / D10','D30 / D60','D10 × D60'],0),
+        Q('A soil has LL = 35, PI = 12. It plots ___ the A-line, giving it a ___ classification.', ['Above; CL','Below; ML','Above; MH','Below; CH'],0),
+      ] },
+    compaction: { topsoil:[
+        Q("What does 'OMC' stand for in compaction testing?", ['Optimum Moisture Content','Overall Material Capacity','Original Mix Composition','Outer Mold Circumference'],0),
+        Q('The Standard Proctor test measures the relationship between:', ['Dry unit weight and moisture content','Shear strength and depth','Permeability and void ratio','Settlement and time'],0),
+      ], subsoil:[
+        Q('As compaction moisture increases past the optimum, dry unit weight generally:', ['Decreases','Increases','Stays constant','Becomes zero'],0),
+        Q('Compared to the Standard Proctor test, the Modified Proctor test uses:', ['Higher compactive effort','Lower compactive effort','The same effort, a different mold','No compaction, only sieving'],0),
+      ], weathered:[
+        Q('The zero-air-voids line on a compaction curve represents:', ['The theoretical maximum dry density at 100% saturation for a given moisture','The OMC point exactly','The minimum achievable density','The plastic limit'],0),
+        Q('Field density is commonly checked in-situ using:', ['A sand cone or nuclear gauge method','A hydrometer test','A triaxial test','A consolidometer'],0),
+      ], bedrock:[
+        Q('A clay compacted dry of optimum tends to develop a ___ structure, giving ___ permeability than wet-of-optimum compaction.', ['Flocculated; higher','Dispersed; lower','Flocculated; lower','Dispersed; higher'],0),
+        Q('Compaction specs often require 95% of the maximum dry density from a Proctor test; this percentage is termed:', ['Relative compaction','Relative density','Degree of saturation','Void ratio ratio'],0),
+      ] },
+    permeability: { topsoil:[
+        Q("Darcy's law relates flow velocity to:", ['The hydraulic gradient','Void ratio only','Shear stress','Temperature only'],0),
+        Q('Which soil type generally has the highest permeability?', ['Clean gravel','Clay','Silt','Colloids'],0),
+      ], subsoil:[
+        Q('In a flow net, flow lines and equipotential lines intersect at:', ['Right angles','45 degrees','They never intersect','Random angles'],0),
+        Q('The coefficient of permeability k is typically found in the lab using a:', ['Constant-head or falling-head permeameter','Consolidometer','Direct shear box','Triaxial cell only'],0),
+      ], weathered:[
+        Q('Seepage discharge from a flow net is q = k·H·(Nf/Nd), where Nf and Nd represent:', ['The number of flow channels and equipotential drops','The number of dams and drains','Void ratio and porosity','Safety factors'],0),
+        Q("A critical hydraulic gradient causing 'quick' (boiling) sand occurs when:", ['Upward seepage force equals the submerged weight of the soil','Permeability equals zero','The soil becomes overconsolidated','Effective stress is at its maximum'],0),
+      ], bedrock:[
+        Q('For a stratified soil with layers of differing k, the equivalent horizontal permeability is generally ___ the equivalent vertical permeability.', ['Greater than','Less than','Equal to','Unrelated to'],0),
+        Q('The critical hydraulic gradient ic is approximately equal to:', ['(Gs − 1) / (1 + e)','Gs × e','k / i','1 / Cc'],0),
+      ] },
+    effective: { topsoil:[
+        Q("Terzaghi's principle states total stress equals:", ['Effective stress plus pore water pressure','Effective stress minus pore pressure','Pore pressure only','Shear strength plus friction angle'],0),
+        Q('Effective stress primarily controls:', ["Soil strength and deformation behavior",'Water color','Grain shape','Mineral hardness'],0),
+      ], subsoil:[
+        Q('Below the water table, pore pressure at a point is generally:', ['γw × the height of water above that point','γsat × depth z','Zero, always','Total stress × porosity'],0),
+        Q('Capillary rise above the water table can cause pore pressure to become:', ['Negative (suction)','Doubled','Equal to atmospheric, always','Irrelevant to effective stress'],0),
+      ], weathered:[
+        Q('During rapid drawdown of a reservoir, effective stress in the embankment can:', ['Decrease, as excess pore pressure lags behind','Increase instantly','Stay perfectly constant','Become negative infinity'],0),
+        Q('Under an artesian condition, elevated pore pressure at a confined aquifer causes effective stress there to:', ['Decrease compared to normal hydrostatic conditions','Increase sharply','Become undefined','Equal total stress'],0),
+      ], bedrock:[
+        Q('Under upward seepage, effective stress at depth z falls to zero when the hydraulic gradient equals:', ['The critical gradient ic','Zero, always','The coefficient of permeability','The void ratio'],0),
+        Q("Bishop's effective stress equation for unsaturated soils introduces a parameter χ that accounts for:", ['The proportion of suction acting on the soil skeleton','Grain size distribution','The plastic limit','Compaction energy'],0),
+      ] },
+    consolidation: { topsoil:[
+        Q('Consolidation settlement is primarily associated with:', ['Gradual expulsion of pore water from fine-grained soils under load','Instant elastic compression of sand','Chemical weathering','Freeze-thaw cycles'],0),
+        Q('The compression index Cc describes:', ['The slope of void ratio versus log-pressure in virgin compression','Permeability change with depth','Shear strength gain','A grain-size distribution slope'],0),
+      ], subsoil:[
+        Q('A soil with OCR > 1 is described as:', ['Overconsolidated','Normally consolidated','Underconsolidated','Unconsolidated'],0),
+        Q('The coefficient of consolidation Cv is used to estimate:', ['The time rate of settlement','The ultimate magnitude of settlement','Shear strength','Permeability directly, with no other data'],0),
+      ], weathered:[
+        Q('Doubling the drainage path length of a consolidating clay layer changes the time to a given degree of consolidation by roughly a factor of:', ['4','2','0.5','1'],0),
+        Q('Secondary compression (creep) in clay occurs mainly:', ['After excess pore pressure has largely dissipated, from particle rearrangement','Before any primary consolidation','Only in sands','Only under seismic loading'],0),
+      ], bedrock:[
+        Q("Using Casagrande's method, preconsolidation pressure is estimated from the e-log(p) curve at the point of:", ['Maximum curvature','Minimum void ratio','Zero effective stress','Intersection with the x-axis'],0),
+        Q('For a doubly-drained clay layer of thickness H, the characteristic drainage path used with the time factor Tv is:', ['H/2','H','2H','H/4'],0),
+      ] },
+    shear: { topsoil:[
+        Q('The Mohr-Coulomb failure criterion relates shear strength to:', ['Cohesion and normal effective stress, via the friction angle','Permeability and void ratio','Settlement and time','Grain shape only'],0),
+        Q('In a direct shear test, the soil sample is sheared along:', ['A predetermined horizontal plane','A random 3D failure surface','A vertical plane only','A curved surface'],0),
+      ], subsoil:[
+        Q('Undrained shear strength (cu) is most relevant for:', ['Short-term loading of saturated clays','Long-term drained sand behavior','Permeability testing','Compaction control'],0),
+        Q('In a triaxial test, the cell pressure applied to the sample represents:', ['The confining (chamber) pressure','The deviator stress only','Pore water pressure directly','The shear strength'],0),
+      ], weathered:[
+        Q('For a normally consolidated clay in a CU triaxial test, the effective friction angle is typically found by plotting:', ['Mohr circles in terms of effective stress at failure','Total stress circles only','Void ratio versus time','Settlement versus load'],0),
+        Q('A dilative (dense) sand under drained shear tends to show a peak strength ___ the critical-state strength.', ['Above','Below','Equal to','Unrelated to'],0),
+      ], bedrock:[
+        Q('The Skempton pore pressure parameter A relates the change in pore pressure to:', ['The change in deviator stress during undrained loading','Permeability directly','Grain size','Total unit weight'],0),
+        Q('For overconsolidated clay, negative pore pressures during undrained shear shift the effective stress path ___ of the total stress path.', ['To the right','To the left','Straight down','It never differs'],0),
+      ] },
+    lateral: { topsoil:[
+        Q('The at-rest earth pressure coefficient K0 applies to a wall that:', ['Does not move relative to the retained soil','Moves away from the soil substantially','Moves into the soil substantially','Is fully submerged only'],0),
+        Q('Active earth pressure occurs when a retaining wall:', ['Moves slightly away from the backfill','Moves into the backfill','Remains perfectly rigid and fixed','Is removed entirely'],0),
+      ], subsoil:[
+        Q("Rankine's theory assumes the back of the wall is:", ['Vertical and frictionless against the soil','Always battered at 45°','Rough, with high friction','Irrelevant to the analysis'],0),
+        Q('Passive earth pressure is generally ___ active earth pressure for the same soil.', ['Much larger than','Much smaller than','Exactly equal to','Unrelated to'],0),
+      ], weathered:[
+        Q("Coulomb's theory, unlike Rankine's, explicitly accounts for:", ['Wall friction and a sloped wall back','Only a horizontal ground surface','Zero-friction-angle soils','Pore pressure exclusively'],0),
+        Q('For a cohesive backfill, the active pressure distribution can include a zone of ___ near the top of the wall.', ['Tension (negative pressure)','Doubled passive pressure','Zero shear','Infinite pressure'],0),
+      ], bedrock:[
+        Q('In Rankine active conditions for a cohesive soil, the tension crack depth zc is approximately:', ['2c / (γ·√Ka)','c / γ','Ka / γ','γ / 2c'],0),
+        Q('For a wall with a sloping backfill at angle β less than φ, the Rankine active coefficient Ka becomes a function of:', ['Both φ and β','Only the wall height','Only the unit weight','Only the surcharge'],0),
+      ] },
+    bearing: { topsoil:[
+        Q("Terzaghi's bearing capacity equation estimates:", ['The ultimate load per unit area a shallow foundation can support before failure','The settlement rate over time','The permeability of the founding soil','The plasticity index of the soil'],0),
+        Q("A 'shallow foundation' is generally one where the embedment depth is:", ['Small compared to its width','Much greater than its width','At bedrock only','Irrelevant to the classification'],0),
+      ], subsoil:[
+        Q("In Terzaghi's equation, the bearing capacity factors Nc, Nq and Nγ primarily depend on:", ["The soil's friction angle φ","The foundation's construction material","The wall's height",'The water content of the concrete'],0),
+        Q('Increasing the width of a footing on cohesionless sand generally:', ['Increases the ultimate bearing capacity','Decreases the ultimate bearing capacity','Has no effect at all','Only affects settlement, never capacity'],0),
+      ], weathered:[
+        Q('A rise in the water table to the base of a footing generally causes bearing capacity (via the Nγ term) to:', ['Decrease, since effective unit weight is reduced','Increase substantially','Remain unaffected','Become infinite'],0),
+        Q('For footings on saturated clay under short-term (undrained) loading, bearing capacity is commonly analyzed using:', ['A φ = 0 analysis with undrained shear strength','The fully drained friction angle only','Permeability tests','Compaction curves'],0),
+      ], bedrock:[
+        Q("Meyerhof's bearing capacity equation extends Terzaghi's approach by adding correction factors for:", ['Depth, shape and load inclination','Soil color only','Groundwater salinity only','Mineral hardness'],0),
+        Q('For an eccentrically loaded footing, the effective width B′ used in bearing capacity calculations is:', ['B minus twice the eccentricity','B plus the eccentricity','Always equal to B','Unrelated to the eccentricity'],0),
+      ] },
+    unsat: { topsoil:[
+        Q('Matric suction in an unsaturated soil arises mainly from:', ['Capillary and adsorptive forces between water and soil particles','Dissolved salt content','Grain color','Magnetic properties of minerals'],0),
+        Q('Frost heave in soils is most associated with:', ['Ice lenses that draw in and freeze pore water','Rapid drainage of all pore water','High-permeability sand with no fines','Warm climates only'],0),
+      ], subsoil:[
+        Q('The soil-water characteristic curve (SWCC) describes the relationship between:', ['Suction and water content (or degree of saturation)','Shear strength and time','Permeability and temperature only','Grain size and mineral type'],0),
+        Q('Frost-susceptible soils are typically:', ['Silts and fine-grained soils with capillary rise potential','Clean gravels only','Dense clean sands only','Any soil, regardless of grain size'],0),
+      ], weathered:[
+        Q('As matric suction increases in an unsaturated soil, apparent shear strength generally:', ['Increases, due to suction-induced effective stress','Decreases to zero','Becomes irrelevant','Always decreases'],0),
+        Q('Permafrost regions pose foundation challenges primarily because of:', ['Thaw settlement when ground ice melts under heat from structures','Excessive permeability','Very high bearing capacity, always','Absence of any moisture'],0),
+      ], bedrock:[
+        Q("In Fredlund's extended shear strength equation for unsaturated soils, the added strength term involves suction multiplied by:", ['tan(φᵇ), an angle describing strength gain with suction','The coefficient of permeability','The compression index','The liquidity index'],0),
+        Q('Segregation potential theory for frost heave relates the heave rate to:', ['The rate of water flow to the freezing front, driven by suction gradients','The total unit weight of the soil only','The plastic limit only','The friction angle only'],0),
+      ] },
+  };
+
+  let QUESTIONS = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+  const QBANK_KEY = 'geoludo_qbank_v1';
+
+  function loadQuestionBank(){
+    try{
+      const raw = localStorage.getItem(QBANK_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(parsed && typeof parsed==='object') QUESTIONS = parsed;
+      }
+    }catch(e){ /* private browsing or corrupt data — fall back to defaults silently */ }
+  }
+  function saveQuestionBank(){
+    try{ localStorage.setItem(QBANK_KEY, JSON.stringify(QUESTIONS)); }
+    catch(e){ /* storage unavailable — edits still work for this session */ }
+  }
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escapeAttr(s){ return escapeHtml(s).replace(/"/g,'&quot;'); }
+
+  const COLORS = [
+    { id:'green',  name:'Green',  hex:'#2fa84f' },
+    { id:'yellow', name:'Yellow', hex:'#f0c419' },
+    { id:'red',    name:'Red',    hex:'#e0473f' },
+    { id:'blue',   name:'Blue',   hex:'#2f6fd6' },
+  ];
+  const DEFAULT_COLORS = JSON.parse(JSON.stringify(COLORS));
+  const COLOR_KEY = 'geoludo_colors_v1';
+
+  function loadColors(){
+    try{
+      const raw = localStorage.getItem(COLOR_KEY);
+      if(!raw) return;
+      const saved = JSON.parse(raw);
+      if(!Array.isArray(saved)) return;
+      saved.forEach(s=>{
+        const c = COLORS.find(x=>x.id===s.id);
+        if(c){
+          if(typeof s.hex==='string') c.hex = s.hex;
+          if(typeof s.name==='string' && s.name.trim()) c.name = s.name.trim();
+        }
+      });
+    }catch(e){ /* private browsing or corrupt data — fall back to defaults silently */ }
+  }
+  function saveColors(){
+    try{
+      localStorage.setItem(COLOR_KEY, JSON.stringify(COLORS.map(c=>({id:c.id, name:c.name, hex:c.hex}))));
+    }catch(e){ /* storage unavailable — edits still work for this session */ }
+  }
+
+  /* ============================================================
+     STATE
+  ============================================================ */
+
+  const state = {
+    selectedTopics: new Set(TOPICS.filter(t=>t.intro).map(t=>t.id)),
+    numPlayers: 2,
+    timerEnabled: false,
+    players: [],       // {color, name, pawns:[{steps}], askedIds:Set}
+    currentPlayer: 0,
+    dice: null,
+    canRoll: true,
+    extraRollPending: false,
+    awaitingSelection: false,
+    movable: [],        // list of pawn indices for current player
+    askedQuestionIds: new Set(),
+    gameOver: false,
+  };
+
+  const ENTRY = { green:0, yellow:14, blue:28, red:42 };
+  const STAR_OFFSET = 8;
+  const SAFE_CELLS = new Set([
+    ...Object.values(ENTRY),
+    ...Object.values(ENTRY).map(e => (e + STAR_OFFSET) % 56),
+  ]);
+  const QUESTION_RING_CELLS = new Set([3,9,17,23,31,37,45,51]);
+  const RING_LEN = 56;
+  const HOME_LEN = 6;
+  const FINISH_STEPS = RING_LEN + HOME_LEN + 1; // 63
+
+  /* ============================================================
+     SCREEN 1 — TOPICS
+  ============================================================ */
+
+  const topicGrid = document.getElementById('topic-grid');
+  const topicCount = document.getElementById('topic-count');
+
+  function renderTopics(){
+    topicGrid.innerHTML = '';
+    TOPICS.forEach(t=>{
+      const sel = state.selectedTopics.has(t.id);
+      const card = document.createElement('button');
+      card.className = 'topic-card' + (sel ? ' selected':'');
+      card.setAttribute('type','button');
+      card.innerHTML = `
+        <div class="row1">
+          <div class="icon-name"><span class="emoji">${t.emoji}</span>${t.name}</div>
+          <div class="checkmark">${sel?'✓':''}</div>
+        </div>
+        <div class="desc">${t.desc}</div>
+      `;
+      card.addEventListener('click', ()=>{
+        if(sel) state.selectedTopics.delete(t.id);
+        else state.selectedTopics.add(t.id);
+        renderTopics();
+      });
+      topicGrid.appendChild(card);
+    });
+    topicCount.textContent = `${state.selectedTopics.size} / ${TOPICS.length} selected`;
+    document.getElementById('btn-to-setup').disabled = state.selectedTopics.size === 0;
+  }
+
+  document.getElementById('btn-select-all').addEventListener('click', ()=>{
+    TOPICS.forEach(t=>state.selectedTopics.add(t.id)); renderTopics();
+  });
+  document.getElementById('btn-clear').addEventListener('click', ()=>{
+    state.selectedTopics.clear(); renderTopics();
+  });
+  document.getElementById('btn-intro-set').addEventListener('click', ()=>{
+    state.selectedTopics = new Set(TOPICS.filter(t=>t.intro).map(t=>t.id)); renderTopics();
+  });
+
+  document.getElementById('btn-to-setup').addEventListener('click', ()=>{
+    showScreen('setup');
+  });
+
+  /* ============================================================
+     SCREEN 2 — SETUP
+  ============================================================ */
+
+  const playerCountRow = document.getElementById('player-count-row');
+  const playerSwatches = document.getElementById('player-swatches');
+  const setupKicker = document.getElementById('setup-kicker');
+  const colorsSub = document.getElementById('colors-sub');
+
+  function renderSetup(){
+    playerCountRow.innerHTML = '';
+    [1,2,3,4].forEach(n=>{
+      const b = document.createElement('button');
+      b.className = 'count-btn' + (state.numPlayers===n ? ' active':'');
+      b.textContent = n;
+      b.addEventListener('click', ()=>{ state.numPlayers = n; renderSetup(); });
+      playerCountRow.appendChild(b);
+    });
+
+    if(state.numPlayers === 1){
+      setupKicker.textContent = 'Solo play is a self-paced core sample — race the die to get all four of your pawns home.';
+      colorsSub.textContent = 'You dig as Green. All four pawns are yours.';
+    } else {
+      setupKicker.textContent = `${state.numPlayers} players share one device, taking turns.`;
+      colorsSub.textContent = 'Assigned in turn order.';
+    }
+
+    playerSwatches.innerHTML = '';
+    for(let i=0;i<state.numPlayers;i++){
+      const c = COLORS[i];
+      const card = document.createElement('div');
+      card.className = 'swatch-card';
+      card.innerHTML = `<div class="swatch-dot" style="background:${c.hex}"></div>
+        <div><div class="name">${c.name}</div><div class="sub-label">Player ${i+1}</div></div>`;
+      playerSwatches.appendChild(card);
+    }
+  }
+
+  const timerToggle = document.getElementById('timer-toggle');
+  timerToggle.addEventListener('click', ()=>{
+    state.timerEnabled = !state.timerEnabled;
+    timerToggle.classList.toggle('on', state.timerEnabled);
+  });
+
+  document.getElementById('btn-back-topics').addEventListener('click', ()=> showScreen('topics'));
+  document.getElementById('btn-customize-colors').addEventListener('click', openColorEditor);
+  document.getElementById('btn-begin').addEventListener('click', ()=>{
+    setupPlayers();
+    showScreen('game');
+    buildBoard();
+    startTurn();
+  });
+
+  function openColorEditor(){
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-card" style="max-width:460px;">
+        <div class="editor-head">
+          <h2>Customize colors</h2>
+          <button class="ghost-btn" id="color-close" style="padding:9px 16px;">Close</button>
+        </div>
+        <div id="color-rows"></div>
+        <div class="editor-foot">
+          <button class="primary-btn" id="color-save" style="flex:1;">Save colors</button>
+          <button class="ghost-btn" id="color-reset">Reset to classic</button>
+        </div>
+        <p class="editor-note">Renamed a color or picked a new shade? It's saved to this browser and used the next time you set up a game here.</p>
+      </div>
+    `;
+    modalRoot.appendChild(overlay);
+
+    const rowsWrap = overlay.querySelector('#color-rows');
+    function renderRows(){
+      rowsWrap.innerHTML = '';
+      COLORS.forEach((c, i)=>{
+        const row = document.createElement('div');
+        row.className = 'color-row';
+        row.innerHTML = `
+          <input type="color" class="color-swatch-input" data-i="${i}" value="${c.hex}">
+          <input type="text" class="editor-input color-name-input" data-i="${i}" value="${escapeAttr(c.name)}">
+        `;
+        rowsWrap.appendChild(row);
+      });
+    }
+    renderRows();
+
+    overlay.querySelector('#color-save').addEventListener('click', ()=>{
+      rowsWrap.querySelectorAll('.color-swatch-input').forEach(inp=>{
+        COLORS[parseInt(inp.dataset.i)].hex = inp.value;
+      });
+      rowsWrap.querySelectorAll('.color-name-input').forEach(inp=>{
+        const i = parseInt(inp.dataset.i);
+        COLORS[i].name = inp.value.trim() || DEFAULT_COLORS[i].name;
+      });
+      saveColors();
+      renderSetup();
+      overlay.remove();
+    });
+
+    overlay.querySelector('#color-reset').addEventListener('click', ()=>{
+      COLORS.forEach((c,i)=>{ c.hex = DEFAULT_COLORS[i].hex; c.name = DEFAULT_COLORS[i].name; });
+      renderRows();
+    });
+
+    overlay.querySelector('#color-close').addEventListener('click', ()=> overlay.remove());
+  }
+
+  /* ============================================================
+     SCREEN SWITCHING
+  ============================================================ */
+
+  function showScreen(name){
+    ['topics','setup','game'].forEach(s=>{
+      document.getElementById('screen-'+s).classList.toggle('hidden', s!==name);
+    });
+    window.scrollTo(0,0);
+  }
+
+  /* ============================================================
+     GAME SETUP
+  ============================================================ */
+
+  function setupPlayers(){
+    state.players = [];
+    for(let i=0;i<state.numPlayers;i++){
+      const c = COLORS[i];
+      state.players.push({
+        color: c.id, hex: c.hex, name: c.name,
+        pawns: [ {steps:0}, {steps:0}, {steps:0}, {steps:0} ],
+      });
+    }
+    state.currentPlayer = 0;
+    state.gameOver = false;
+    state.askedQuestionIds = new Set();
+    logClear();
+    log(`The dig begins. ${state.players.length===1?'Solo run':state.players.length+' players'} · ${state.selectedTopics.size} topic${state.selectedTopics.size===1?'':'s'} selected.`);
+  }
+
+  /* ============================================================
+     BOARD GEOMETRY
+  ============================================================ */
+
+  const CELL = 48;
+  const GRID = 15;
+  const MARGIN = 18;
+  const BOARD_PX = CELL*GRID;
+  const VB = BOARD_PX + MARGIN*2;
+
+  function cellXY(row, col){ return { x: MARGIN + col*CELL + CELL/2, y: MARGIN + row*CELL + CELL/2 }; }
+
+  // Rotate a grid point 90° clockwise about the board's center (row7,col7)
+  function rot(pt){ return { row: pt.col, col: 14 - pt.row }; }
+
+  // One quarter of the ring: green's outbound row, the corner, the column up to the
+  // tip, and the tip-middle cell that hands off to the next color's quarter.
+  const RING_Q1 = (()=>{
+    const q = [];
+    for(let c=0;c<=5;c++) q.push({row:6, col:c});
+    q.push({row:6, col:6});
+    for(let r=5;r>=0;r--) q.push({row:r, col:6});
+    q.push({row:0, col:7});
+    return q;
+  })();
+
+  const RING = (()=>{
+    const cells = [];
+    let q = RING_Q1;
+    for(let k=0;k<4;k++){ cells.push(...q); q = q.map(rot); }
+    return cells; // 56 cells
+  })();
+
+  // Green's home stretch, outer (near ring) to inner (near center); rotated per color.
+  const HOME_BASE = [ {row:7,col:1},{row:7,col:2},{row:7,col:3},{row:7,col:4},{row:7,col:5},{row:7,col:6} ];
+  const HOME_CELLS = (()=>{
+    const byColor = {};
+    const order = ['green','yellow','blue','red'];
+    let h = HOME_BASE;
+    order.forEach(color=>{ byColor[color] = h; h = h.map(rot); });
+    return byColor;
+  })();
+
+  const YARD_ORIGIN = {
+    green:  {row:0, col:0},
+    yellow: {row:0, col:9},
+    red:    {row:9, col:0},
+    blue:   {row:9, col:9},
+  };
+  const YARD_SLOTS = [ [1.5,1.5],[4.5,1.5],[1.5,4.5],[4.5,4.5] ]; // [colOffset, rowOffset] in cell units
+
+  function ringXY(i){ const c = RING[i]; return cellXY(c.row, c.col); }
+  function homeXY(color, idx){ const c = HOME_CELLS[color][idx]; return cellXY(c.row, c.col); }
+  function yardXY(color, slot){
+    const o = YARD_ORIGIN[color];
+    const s = YARD_SLOTS[slot];
+    return { x: MARGIN + (o.col+s[0])*CELL, y: MARGIN + (o.row+s[1])*CELL };
+  }
+
+  function pawnXY(color, steps, slot){
+    if(steps===0) return yardXY(color, slot);
+    if(steps<=RING_LEN){
+      const cell = (ENTRY[color] + steps - 1) % RING_LEN;
+      return ringXY(cell);
+    }
+    if(steps<FINISH_STEPS) return homeXY(color, steps-RING_LEN-1);
+    return cellXY(7,7); // finished, sits at the center
+  }
+
+  function isQuestionSpace(color, steps){
+    if(steps>RING_LEN && steps<FINISH_STEPS) return true; // the 6 home-stretch cells
+    if(steps>=1 && steps<=RING_LEN){
+      const cell = (ENTRY[color] + steps - 1) % RING_LEN;
+      return QUESTION_RING_CELLS.has(cell);
+    }
+    return false;
+  }
+
+  function tierForSteps(steps){
+    if(steps<=16) return 'topsoil';
+    if(steps<=32) return 'subsoil';
+    if(steps<=48) return 'weathered';
+    return 'bedrock';
+  }
+
+  /* ============================================================
+     BOARD RENDER (static geometry, built once per game)
+  ============================================================ */
+
+  const boardPanel = document.getElementById('board-panel');
+
+  function buildBoard(){
+    let svg = `<svg viewBox="0 0 ${VB} ${VB}" xmlns="http://www.w3.org/2000/svg">`;
+
+    // board backing
+    svg += `<rect x="0" y="0" width="${VB}" height="${VB}" rx="14" fill="#f4ecd8"/>`;
+
+    // four colored yards, each a 6x6 block with a white inset holding 4 pip slots
+    Object.keys(YARD_ORIGIN).forEach(color=>{
+      const o = YARD_ORIGIN[color];
+      const c = COLORS.find(x=>x.id===color);
+      const bx = MARGIN + o.col*CELL, by = MARGIN + o.row*CELL, bs = CELL*6;
+      svg += `<rect x="${bx}" y="${by}" width="${bs}" height="${bs}" fill="${c.hex}"/>`;
+      const ix = bx + CELL*0.9, iy = by + CELL*0.9, is = bs - CELL*1.8;
+      svg += `<rect x="${ix}" y="${iy}" width="${is}" height="${is}" rx="${CELL*0.35}" fill="#f4ecd8"/>`;
+      for(let s=0;s<4;s++){
+        const p = yardXY(color, s);
+        svg += `<circle cx="${p.x}" cy="${p.y}" r="${CELL*0.28}" fill="none" stroke="${c.hex}" stroke-width="2" opacity="0.55"/>`;
+      }
+    });
+
+    // ring track cells
+    for(let i=0;i<RING_LEN;i++){
+      const p = ringXY(i);
+      const isEntry = Object.values(ENTRY).includes(i);
+      const isStar = SAFE_CELLS.has(i) && !isEntry;
+      const isQ = QUESTION_RING_CELLS.has(i);
+      let fill = null;
+      if(isEntry){
+        const colorId = Object.keys(ENTRY).find(k=>ENTRY[k]===i);
+        fill = COLORS.find(c=>c.id===colorId).hex;
+      }
+      const cls = 'cell-track' + (isQ?' q':'');
+      svg += `<rect x="${p.x-CELL/2}" y="${p.y-CELL/2}" width="${CELL}" height="${CELL}" class="${cls}" ${fill?`fill="${fill}"`:''}/>`;
+      if(isQ) svg += `<text x="${p.x}" y="${p.y+6}" text-anchor="middle" font-family="var(--mono)" font-weight="600" font-size="16" fill="#7a5b28">?</text>`;
+      if(isStar) svg += starMark(p.x, p.y);
+    }
+
+    // entry arrows — a small triangle at each color's start cell, pointing the way it travels
+    const ARROW_DIR = { green:'right', yellow:'down', blue:'left', red:'up' };
+    Object.keys(ENTRY).forEach(color=>{
+      const p = ringXY(ENTRY[color]);
+      svg += arrowMark(p.x, p.y, ARROW_DIR[color]);
+    });
+
+    // home stretches
+    Object.keys(HOME_CELLS).forEach(color=>{
+      const c = COLORS.find(x=>x.id===color);
+      HOME_CELLS[color].forEach((cell, idx)=>{
+        const p = cellXY(cell.row, cell.col);
+        svg += `<rect x="${p.x-CELL/2}" y="${p.y-CELL/2}" width="${CELL}" height="${CELL}" fill="${c.hex}" fill-opacity="0.85" stroke="${c.hex}"/>`;
+        svg += `<text x="${p.x}" y="${p.y+6}" text-anchor="middle" font-family="var(--mono)" font-weight="600" font-size="16" fill="#2a1f10">?</text>`;
+      });
+    });
+
+    // center pinwheel — four triangles pointing in from each side, meeting at the middle
+    const cCenter = cellXY(7,7);
+    const cSize = CELL*1.5;
+    const nx=cCenter.x, ny=cCenter.y;
+    const tl = {x:nx-cSize, y:ny-cSize}, tr={x:nx+cSize,y:ny-cSize}, bl={x:nx-cSize,y:ny+cSize}, br={x:nx+cSize,y:ny+cSize};
+    svg += `<polygon points="${tl.x},${tl.y} ${tr.x},${tr.y} ${nx},${ny}" fill="${COLORS.find(c=>c.id==='yellow').hex}" class="center-tri"/>`;
+    svg += `<polygon points="${tr.x},${tr.y} ${br.x},${br.y} ${nx},${ny}" fill="${COLORS.find(c=>c.id==='blue').hex}" class="center-tri"/>`;
+    svg += `<polygon points="${br.x},${br.y} ${bl.x},${bl.y} ${nx},${ny}" fill="${COLORS.find(c=>c.id==='red').hex}" class="center-tri"/>`;
+    svg += `<polygon points="${bl.x},${bl.y} ${tl.x},${tl.y} ${nx},${ny}" fill="${COLORS.find(c=>c.id==='green').hex}" class="center-tri"/>`;
+
+    svg += `<g id="pawn-layer"></g>`;
+    svg += `</svg>`;
+    boardPanel.innerHTML = svg;
+
+    renderPawns();
+  }
+
+  function starMark(cx, cy){
+    const spikes=5, outerR=CELL*0.28, innerR=CELL*0.12;
+    let pts = [];
+    for(let i=0;i<spikes*2;i++){
+      const r = i%2===0 ? outerR : innerR;
+      const a = (Math.PI/spikes)*i - Math.PI/2;
+      pts.push(`${cx+r*Math.cos(a)},${cy+r*Math.sin(a)}`);
+    }
+    return `<polygon points="${pts.join(' ')}" class="star-mark"/>`;
+  }
+
+  function arrowMark(cx, cy, dir){
+    const s = CELL*0.22;
+    let pts;
+    if(dir==='right') pts = [[cx-s,cy-s],[cx-s,cy+s],[cx+s,cy]];
+    else if(dir==='left') pts = [[cx+s,cy-s],[cx+s,cy+s],[cx-s,cy]];
+    else if(dir==='down') pts = [[cx-s,cy-s],[cx+s,cy-s],[cx,cy+s]];
+    else pts = [[cx-s,cy+s],[cx+s,cy+s],[cx,cy-s]];
+    return `<polygon points="${pts.map(p=>p.join(',')).join(' ')}" fill="#f4ecd8" class="entry-arrow"/>`;
+  }
+
+  function renderPawns(){
+    const layer = document.getElementById('pawn-layer');
+    layer.innerHTML = '';
+    // count occupants per exact spot to offset stacked pawns
+    const spotCounts = {};
+
+    state.players.forEach((pl, pIdx)=>{
+      pl.pawns.forEach((pawn, pawnIdx)=>{
+        const base = pawnXY(pl.color, pawn.steps, pawnIdx);
+        const key = pl.color+':'+pawn.steps+(pawn.steps===0?(':'+pawnIdx):'');
+        spotCounts[key] = (spotCounts[key]||0);
+        const n = spotCounts[key]++;
+        const offset = n>0 ? (n%2===0?1:-1)*7*Math.ceil(n/2) : 0;
+        const x = base.x + (pawn.steps>0?offset:0);
+        const y = base.y + (pawn.steps>0?offset*0.6:0);
+
+        const isMovable = state.awaitingSelection && state.movable.some(m=>m.player===pIdx && m.pawn===pawnIdx);
+        const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 15);
+        c.setAttribute('fill', pl.hex);
+        c.setAttribute('class', 'pawn'+(isMovable?' movable':''));
+        c.setAttribute('data-player', pIdx);
+        c.setAttribute('data-pawn', pawnIdx);
+        if(isMovable){
+          c.addEventListener('click', ()=> selectPawn(pIdx, pawnIdx));
+          c.setAttribute('tabindex','0');
+          c.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); selectPawn(pIdx,pawnIdx); } });
+        }
+        layer.appendChild(c);
+      });
+    });
+  }
+
+  /* ============================================================
+     TURN / DICE LOGIC
+  ============================================================ */
+
+  const turnNameText = document.getElementById('turn-name-text');
+  const turnDot = document.getElementById('turn-dot');
+  const diceFace = document.getElementById('dice-face');
+  const rollBtn = document.getElementById('roll-btn');
+  const hintLine = document.getElementById('hint-line');
+
+  function startTurn(){
+    const pl = state.players[state.currentPlayer];
+    turnNameText.textContent = pl.name;
+    turnDot.style.background = pl.hex;
+    diceFace.textContent = '–';
+    state.canRoll = true;
+    state.awaitingSelection = false;
+    state.movable = [];
+    rollBtn.disabled = false;
+    hintLine.textContent = allInBase(pl) ? 'Roll a 6 to bring a pawn up from the yard.' : 'Roll the die to move.';
+    renderPawns();
+  }
+
+  function allInBase(pl){ return pl.pawns.every(p=>p.steps===0); }
+
+  rollBtn.addEventListener('click', ()=>{
+    if(!state.canRoll || state.gameOver) return;
+    state.canRoll = false;
+    rollBtn.disabled = true;
+    let ticks = 0;
+    const spin = setInterval(()=>{
+      diceFace.textContent = 1+Math.floor(Math.random()*6);
+      ticks++;
+      if(ticks>7){
+        clearInterval(spin);
+        const roll = 1+Math.floor(Math.random()*6);
+        diceFace.textContent = roll;
+        resolveRoll(roll);
+      }
+    }, 60);
+  });
+
+  function resolveRoll(roll){
+    const pIdx = state.currentPlayer;
+    const pl = state.players[pIdx];
+    log(`<b>${pl.name}</b> rolled a <b>${roll}</b>.`);
+
+    const movable = [];
+    pl.pawns.forEach((pawn, i)=>{
+      if(pawn.steps===0){
+        if(roll===6) movable.push({player:pIdx, pawn:i, dest:1, fromBase:true});
+      } else if(pawn.steps<FINISH_STEPS){
+        const dest = pawn.steps + roll;
+        if(dest<=FINISH_STEPS) movable.push({player:pIdx, pawn:i, dest, fromBase:false});
+      }
+    });
+
+    if(movable.length===0){
+      hintLine.textContent = 'No legal moves with that roll.';
+      setTimeout(()=>{
+        if(roll===6){ hintLine.textContent = 'Rolling a 6 — go again.'; state.canRoll=true; rollBtn.disabled=false; }
+        else nextTurn();
+      }, 700);
+      return;
+    }
+
+    if(movable.length===1){
+      hintLine.textContent = 'Moving automatically — only one legal move.';
+      setTimeout(()=> executeMove(movable[0], roll), 500);
+      return;
+    }
+
+    state.movable = movable;
+    state.awaitingSelection = true;
+    state.pendingRoll = roll;
+    hintLine.textContent = 'Choose which pawn to move — the glowing ones can move.';
+    renderPawns();
+  }
+
+  function selectPawn(pIdx, pawnIdx){
+    if(!state.awaitingSelection) return;
+    const move = state.movable.find(m=>m.player===pIdx && m.pawn===pawnIdx);
+    if(!move) return;
+    state.awaitingSelection = false;
+    executeMove(move, state.pendingRoll);
+  }
+
+  function executeMove(move, roll){
+    const pl = state.players[move.player];
+    const pawn = pl.pawns[move.pawn];
+    const prevSteps = pawn.steps;
+
+    if(move.fromBase){
+      pawn.steps = 1;
+      log(`<b>${pl.name}</b> brings a pawn up to the surface.`);
+      renderPawns();
+      afterMoveSettled(move, roll, prevSteps, false);
+      return;
+    }
+
+    pawn.steps = move.dest;
+    renderPawns();
+
+    if(isQuestionSpace(pl.color, pawn.steps)){
+      const tier = tierForSteps(pawn.steps);
+      askQuestion(tier, (correct)=>{
+        if(!correct){
+          pawn.steps = prevSteps;
+          log(`<b>${pl.name}</b> answered wrong — the pawn slides back.`);
+          renderPawns();
+          afterMoveSettled(move, roll, prevSteps, false);
+        } else {
+          log(`<b>${pl.name}</b> answered correctly and holds the space.`);
+          afterMoveSettled(move, roll, prevSteps, true);
+        }
+      });
+    } else {
+      afterMoveSettled(move, roll, prevSteps, true);
+    }
+  }
+
+  function afterMoveSettled(move, roll, prevSteps, landedOk){
+    const pl = state.players[move.player];
+    const pawn = pl.pawns[move.pawn];
+
+    if(landedOk && pawn.steps>=1 && pawn.steps<=RING_LEN){
+      const cell = (ENTRY[pl.color] + pawn.steps - 1) % RING_LEN;
+      const isSafe = SAFE_CELLS.has(cell);
+      if(!isSafe){
+        state.players.forEach((opp, oIdx)=>{
+          if(oIdx===move.player) return;
+          opp.pawns.forEach(oppPawn=>{
+            if(oppPawn.steps>=1 && oppPawn.steps<=RING_LEN){
+              const oppCell = (ENTRY[opp.color] + oppPawn.steps - 1) % RING_LEN;
+              if(oppCell===cell){
+                oppPawn.steps = 0;
+                log(`<b>${pl.name}</b> captures ${opp.name}'s pawn — back to the yard.`);
+              }
+            }
+          });
+        });
+      }
+    }
+
+    if(pawn.steps===FINISH_STEPS){
+      log(`<b>${pl.name}</b> brings a pawn home to the core.`);
+    }
+
+    renderPawns();
+
+    if(checkWin(pl)){
+      state.gameOver = true;
+      showWin(pl);
+      return;
+    }
+
+    if(roll===6){
+      hintLine.textContent = 'Rolling a 6 — go again.';
+      state.canRoll = true;
+      rollBtn.disabled = false;
+    } else {
+      setTimeout(nextTurn, 400);
+    }
+  }
+
+  function checkWin(pl){ return pl.pawns.every(p=>p.steps===FINISH_STEPS); }
+
+  function nextTurn(){
+    state.currentPlayer = (state.currentPlayer+1) % state.players.length;
+    startTurn();
+  }
+
+  /* ============================================================
+     QUESTIONS
+  ============================================================ */
+
+  const modalRoot = document.createElement('div');
+  document.body.appendChild(modalRoot);
+
+  function pickQuestion(tier){
+    let topics = Array.from(state.selectedTopics).filter(id => (QUESTIONS[id][tier]||[]).length>0);
+    if(topics.length===0) topics = TOPICS.map(t=>t.id).filter(id => (QUESTIONS[id][tier]||[]).length>0);
+    if(topics.length===0){
+      const t = TOPICS[0];
+      return { topic:t, question:{ q:'This tier has no questions right now — add some in Edit questions.', options:['OK','OK','OK','OK'], correct:0 } };
+    }
+    const topicId = topics[Math.floor(Math.random()*topics.length)];
+    const bank = QUESTIONS[topicId][tier];
+    // avoid immediate repeats where possible
+    const idxCandidates = bank.map((_,i)=>topicId+'|'+tier+'|'+i).map((key,i)=>({key,i}))
+      .filter(o=>!state.askedQuestionIds.has(o.key));
+    let chosen;
+    if(idxCandidates.length>0){
+      chosen = idxCandidates[Math.floor(Math.random()*idxCandidates.length)];
+    } else {
+      state.askedQuestionIds.clear();
+      chosen = { key: topicId+'|'+tier+'|0', i:0 };
+    }
+    state.askedQuestionIds.add(chosen.key);
+    const topic = TOPICS.find(t=>t.id===topicId);
+    return { topic, question: bank[chosen.i] };
+  }
+
+  function askQuestion(tier, callback){
+    const { topic, question } = pickQuestion(tier);
+    let timeLeft = 45;
+    let timerInterval = null;
+    let answered = false;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-card">
+        <div class="q-tier-tag" style="background:${TIER_COLOR[tier]};color:var(--ink)">${TIER_LABEL[tier]}</div>
+        <div class="q-topic">${topic.emoji} ${topic.name}</div>
+        <p class="q-text">${question.q}</p>
+        ${state.timerEnabled ? `<div class="q-timer-track"><div class="q-timer-fill" id="q-timer-fill" style="width:100%"></div></div>` : ''}
+        <div class="q-options" id="q-options"></div>
+        <div class="q-feedback hidden" id="q-feedback"></div>
+        <button class="primary-btn q-continue hidden" id="q-continue">Continue</button>
+      </div>
+    `;
+    modalRoot.appendChild(overlay);
+
+    const optWrap = overlay.querySelector('#q-options');
+    question.options.forEach((opt, i)=>{
+      const b = document.createElement('button');
+      b.className = 'q-option';
+      b.textContent = opt;
+      b.addEventListener('click', ()=> finish(i));
+      optWrap.appendChild(b);
+    });
+
+    if(state.timerEnabled){
+      const fill = overlay.querySelector('#q-timer-fill');
+      timerInterval = setInterval(()=>{
+        timeLeft--;
+        fill.style.width = Math.max(0,(timeLeft/45*100)) + '%';
+        if(timeLeft<=0){
+          clearInterval(timerInterval);
+          if(!answered) finish(-1);
+        }
+      }, 1000);
+    }
+
+    function finish(chosenIdx){
+      if(answered) return;
+      answered = true;
+      if(timerInterval) clearInterval(timerInterval);
+      const correct = chosenIdx === question.correct;
+      const btns = optWrap.querySelectorAll('.q-option');
+      btns.forEach((b,i)=>{
+        b.disabled = true;
+        if(i===question.correct) b.classList.add('correct');
+        else if(i===chosenIdx) b.classList.add('incorrect');
+      });
+      const fb = overlay.querySelector('#q-feedback');
+      fb.classList.remove('hidden');
+      fb.innerHTML = correct
+        ? `<b>Correct.</b> The pawn holds its ground.`
+        : (chosenIdx===-1
+            ? `<b>Time's up.</b> The pawn slides back to where it started this move.`
+            : `<b>Not quite.</b> The pawn slides back to where it started this move.`);
+      const cont = overlay.querySelector('#q-continue');
+      cont.classList.remove('hidden');
+      cont.addEventListener('click', ()=>{
+        overlay.remove();
+        callback(correct);
+      }, {once:true});
+    }
+  }
+
+  /* ============================================================
+     QUESTION BANK EDITOR
+  ============================================================ */
+
+  document.getElementById('btn-edit-questions').addEventListener('click', openEditor);
+
+  function blankQuestion(){
+    return { q:'New question — edit me', options:['Option A','Option B','Option C','Option D'], correct:0 };
+  }
+
+  function openEditor(){
+    let editTopic = TOPICS[0].id, editTier = 'topsoil';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-card editor-card">
+        <div class="editor-head">
+          <h2>Edit question bank</h2>
+          <button class="ghost-btn" id="editor-close" style="padding:9px 16px;">Close</button>
+        </div>
+        <div class="editor-tabs" id="editor-topic-tabs"></div>
+        <div class="editor-tabs" id="editor-tier-tabs"></div>
+        <div id="editor-question-list"></div>
+        <button class="chip-btn" id="editor-add-q">+ Add question</button>
+        <div class="editor-foot">
+          <button class="ghost-btn" id="editor-reset-tier">Reset this tier to default</button>
+          <button class="ghost-btn" id="editor-export">Export as JSON</button>
+          <button class="ghost-btn" id="editor-import">Import JSON</button>
+          <input type="file" id="editor-import-file" accept="application/json" class="hidden">
+        </div>
+        <p class="editor-note">Edits save automatically to this browser. They'll still be here next time you open this file here — but they won't follow you to another browser or device unless you export and re-import the JSON.</p>
+      </div>
+    `;
+    modalRoot.appendChild(overlay);
+
+    const topicTabs = overlay.querySelector('#editor-topic-tabs');
+    const tierTabs = overlay.querySelector('#editor-tier-tabs');
+    const qList = overlay.querySelector('#editor-question-list');
+
+    function renderTabs(){
+      topicTabs.innerHTML = '';
+      TOPICS.forEach(t=>{
+        const b = document.createElement('button');
+        b.className = 'chip-btn' + (t.id===editTopic ? ' active-tab':'');
+        b.textContent = `${t.emoji} ${t.name}`;
+        b.addEventListener('click', ()=>{ editTopic=t.id; renderTabs(); renderQList(); });
+        topicTabs.appendChild(b);
+      });
+      tierTabs.innerHTML = '';
+      TIERS.forEach(tier=>{
+        const b = document.createElement('button');
+        b.className = 'chip-btn' + (tier===editTier ? ' active-tab':'');
+        b.textContent = TIER_LABEL[tier];
+        b.addEventListener('click', ()=>{ editTier=tier; renderTabs(); renderQList(); });
+        tierTabs.appendChild(b);
+      });
+    }
+
+    function renderQList(){
+      const bank = QUESTIONS[editTopic][editTier];
+      qList.innerHTML = '';
+      bank.forEach((q, qi)=>{
+        const card = document.createElement('div');
+        card.className = 'editor-q-card';
+        let optsHtml = '';
+        q.options.forEach((opt, oi)=>{
+          optsHtml += `<div class="editor-opt-row">
+            <input type="radio" name="correct-${qi}" data-qi="${qi}" data-oi="${oi}" ${oi===q.correct?'checked':''}>
+            <input type="text" class="editor-input" data-qi="${qi}" data-oi="${oi}" value="${escapeAttr(opt)}">
+          </div>`;
+        });
+        card.innerHTML = `
+          <textarea class="editor-input q-text-input" rows="2" data-qi="${qi}">${escapeHtml(q.q)}</textarea>
+          ${optsHtml}
+          <button class="restart-link editor-del" data-qi="${qi}">Delete this question</button>
+        `;
+        qList.appendChild(card);
+      });
+      if(bank.length===0){
+        qList.innerHTML = '<p style="color:var(--ink-faint);font-size:13px;">No questions in this tier yet — add one below.</p>';
+      }
+    }
+
+    qList.addEventListener('input', (e)=>{
+      const t = e.target;
+      if(t.dataset.qi===undefined) return;
+      const qi = parseInt(t.dataset.qi);
+      if(t.classList.contains('q-text-input')){
+        QUESTIONS[editTopic][editTier][qi].q = t.value;
+      } else if(t.type==='text'){
+        QUESTIONS[editTopic][editTier][qi].options[parseInt(t.dataset.oi)] = t.value;
+      }
+      saveQuestionBank();
+    });
+
+    qList.addEventListener('change', (e)=>{
+      const t = e.target;
+      if(t.type==='radio'){
+        QUESTIONS[editTopic][editTier][parseInt(t.dataset.qi)].correct = parseInt(t.dataset.oi);
+        saveQuestionBank();
+      }
+    });
+
+    qList.addEventListener('click', (e)=>{
+      if(e.target.classList.contains('editor-del')){
+        const qi = parseInt(e.target.dataset.qi);
+        QUESTIONS[editTopic][editTier].splice(qi,1);
+        saveQuestionBank();
+        renderQList();
+      }
+    });
+
+    overlay.querySelector('#editor-add-q').addEventListener('click', ()=>{
+      QUESTIONS[editTopic][editTier].push(blankQuestion());
+      saveQuestionBank();
+      renderQList();
+    });
+
+    overlay.querySelector('#editor-reset-tier').addEventListener('click', ()=>{
+      if(!confirm('Reset this tier back to the built-in questions? Your edits to it will be lost.')) return;
+      QUESTIONS[editTopic][editTier] = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS[editTopic][editTier]));
+      saveQuestionBank();
+      renderQList();
+    });
+
+    overlay.querySelector('#editor-export').addEventListener('click', ()=>{
+      const blob = new Blob([JSON.stringify(QUESTIONS, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'geoludo-questions.json'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    overlay.querySelector('#editor-import').addEventListener('click', ()=>{
+      overlay.querySelector('#editor-import-file').click();
+    });
+    overlay.querySelector('#editor-import-file').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const parsed = JSON.parse(reader.result);
+          const ok = TOPICS.every(t=> parsed[t.id] && TIERS.every(tier=>Array.isArray(parsed[t.id][tier])));
+          if(!ok) throw new Error('shape mismatch');
+          QUESTIONS = parsed;
+          saveQuestionBank();
+          renderTabs();
+          renderQList();
+        }catch(err){
+          alert("That file doesn't look like a GeoLudo question bank JSON export.");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    overlay.querySelector('#editor-close').addEventListener('click', ()=> overlay.remove());
+
+    renderTabs();
+    renderQList();
+  }
+
+  /* ============================================================
+     WIN SCREEN
+  ============================================================ */
+
+  function showWin(pl){
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-card win-card">
+        <div class="emoji-big">⛏️</div>
+        <h2>${pl.name} reaches the core</h2>
+        <p>All four pawns are home. Nicely excavated.</p>
+        <button class="primary-btn" id="win-restart">Start a new game</button>
+      </div>
+    `;
+    modalRoot.appendChild(overlay);
+    overlay.querySelector('#win-restart').addEventListener('click', ()=>{
+      overlay.remove();
+      showScreen('topics');
+    });
+  }
+
+  document.getElementById('btn-restart').addEventListener('click', ()=>{
+    if(confirm('Start a new game? Current progress will be lost.')) showScreen('topics');
+  });
+
+  /* ============================================================
+     LOG
+  ============================================================ */
+
+  const logList = document.getElementById('log-list');
+  function log(msg){
+    const el = document.createElement('div');
+    el.className = 'log-entry';
+    el.innerHTML = msg;
+    logList.insertBefore(el, logList.firstChild);
+  }
+  function logClear(){ logList.innerHTML = ''; }
+
+  /* ============================================================
+     INIT
+  ============================================================ */
+
+  loadQuestionBank();
+  loadColors();
+  renderTopics();
+  renderSetup();
+  timerToggle.classList.toggle('on', state.timerEnabled);
+
+})();
+</script>
+
+</body>
+</html>
