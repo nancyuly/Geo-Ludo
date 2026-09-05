@@ -1101,6 +1101,7 @@ const firebaseConfig = {
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
+  db.settings({ experimentalAutoDetectLongPolling: true });
   let currentUser = null;      // the signed-in Firebase user, once loaded
   let studentDoc = null;       // that user's Firestore data, kept in sync locally
 
