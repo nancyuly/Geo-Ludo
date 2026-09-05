@@ -2229,13 +2229,13 @@ const firebaseConfig = {
     });
 
     if(movable.length===0){
-      hintLine.textContent = 'No legal moves with that roll.';
-      setTimeout(()=>{
-        if(roll===6){ hintLine.textContent = 'Rolling a 6 — go again.'; state.canRoll=true; rollBtn.disabled=false; }
-        else nextTurn();
-      }, 700);
-      return;
-    }
+  hintLine.textContent = 'No legal moves with that roll.';
+  setTimeout(()=>{
+    if(roll===6){ hintLine.textContent = 'Rolling a 6 — go again.'; state.canRoll=true; rollBtn.disabled=false; pushRoomState(); }
+    else { nextTurn(); pushRoomState(); }
+  }, 700);
+  return;
+}
 
     if(movable.length===1){
       hintLine.textContent = 'Moving automatically — only one legal move.';
