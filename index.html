@@ -9,26 +9,34 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#f8f6f0;
+    --bg:#ffffff;
     --bg-elev:#ffffff;
     --bg-card:#ffffff;
     --topsoil:#8b9a6e;
     --subsoil:#bb8264;
     --weathered:#a49b8a;
     --bedrock:#4a4038;
-    --core:#a9812f;
-    --core-dim:#d8c48b;
-    --ink:#23262d;
-    --ink-dim:#63677a;
-    --ink-faint:#9a9da8;
-    --rule:#e6e2d6;
-    --good:#3f7d55;
+    --core:#8c0028;
+    --core-2:#a3253f;
+    --core-dim:#f3dde3;
+    --ink:#1b1b1b;
+    --ink-dim:#4d4d4d;
+    --ink-faint:#8a8a8a;
+    --rule:#c9c9c9;
+    --good:#2f7d43;
     --bad:#a23b32;
 
     --green:#2fa84f;
     --yellow:#f0c419;
     --red:#e0473f;
     --blue:#2f6fd6;
+
+    --radius-sm:6px;
+    --radius-md:8px;
+    --radius-lg:10px;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.06);
+    --shadow-md:0 2px 4px rgba(0,0,0,.08);
+    --shadow-lg:0 8px 28px rgba(0,0,0,.16);
 
     --serif:'Fraunces', 'Iowan Old Style', 'Palatino Linotype', serif;
     --sans:'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
@@ -43,6 +51,18 @@
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
   }
+  .app-banner{
+    width:100%;
+    background:var(--core);
+    color:#fff;
+    text-align:center;
+    padding:16px 20px;
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+  }
   .hidden{display:none !important;}
   button{font-family:inherit;cursor:pointer;}
   button:focus-visible, [tabindex]:focus-visible, .pawn.movable:focus-visible{
@@ -50,10 +70,20 @@
     outline-offset:2px;
   }
 
-  .topic-card, .swatch-card, .turn-card, .log-card, .toggle-row,
-  .editor-q-card, .modal-card, .count-btn, .board-panel{
-    box-shadow:0 1px 2px rgba(30,24,10,.05), 0 6px 20px rgba(30,24,10,.05);
+  @keyframes screenIn{
+    from{ opacity:0; transform:translateY(6px); }
+    to{ opacity:1; transform:translateY(0); }
   }
+  .screen.screen-enter{ animation:screenIn .35s ease both; }
+  @media (prefers-reduced-motion: reduce){
+    .screen.screen-enter{ animation:none; }
+  }
+
+  .topic-card, .swatch-card, .turn-card, .log-card, .toggle-row,
+  .editor-q-card, .count-btn, .board-panel{
+    box-shadow:none;
+  }
+  .modal-card{ box-shadow:var(--shadow-lg); }
 
   /* ---------- shared layout ---------- */
   .screen{
@@ -66,6 +96,12 @@
   }
   .wrap{width:100%;max-width:980px;}
 
+  .strata-caption{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--ink-faint);
+    margin-bottom:8px;
+  }
   .strata-bar{
     display:flex;
     width:100%;
@@ -93,19 +129,26 @@
   .strata-labels span{flex:1;text-align:center;}
 
   h1.title{
-    font-family:var(--serif);
-    font-weight:600;
-    font-size:clamp(34px, 5vw, 52px);
-    line-height:1.05;
-    margin:0 0 6px;
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:clamp(18px, 2.4vw, 24px);
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    text-align:center;
+    line-height:1.3;
+    background:var(--core);
+    color:#fff;
+    padding:16px 20px;
+    margin:0 0 22px;
+    border-radius:var(--radius-sm);
   }
   .kicker{
-    font-family:var(--mono);
-    font-size:13px;
+    font-family:var(--sans);
+    font-size:14px;
     color:var(--ink-dim);
     margin:0 0 28px;
     max-width:62ch;
-    line-height:1.5;
+    line-height:1.55;
   }
 
   /* ---------- topic screen ---------- */
@@ -132,13 +175,13 @@
     background:transparent;
     border:1px solid var(--rule);
     color:var(--ink-dim);
-    padding:8px 14px;
+    padding:9px 16px;
     border-radius:20px;
     font-size:13px;
     font-family:var(--sans);
-    transition:border-color .15s, color .15s;
+    transition:border-color .15s, color .15s, background .15s;
   }
-  .chip-btn:hover{border-color:var(--core-dim);color:var(--ink);}
+  .chip-btn:hover{border-color:var(--core);color:var(--ink);background:var(--core-dim);}
 
   .topic-grid{
     display:grid;
@@ -149,19 +192,20 @@
   .topic-card{
     text-align:left;
     background:var(--bg-card);
-    border:1px solid var(--rule);
-    border-radius:10px;
-    padding:16px 16px 14px;
+    border:1.5px solid var(--rule);
+    border-radius:var(--radius-md);
+    padding:18px 18px 16px;
     position:relative;
-    transition:border-color .15s, background .15s, transform .1s;
+    transition:border-color .15s, background .15s;
     display:flex;
     flex-direction:column;
     gap:6px;
   }
-  .topic-card:hover{transform:translateY(-1px);}
+  .topic-card:hover{border-color:var(--ink-faint);}
   .topic-card.selected{
     border-color:var(--core);
-    background:#faf3e0;
+    border-width:2px;
+    background:var(--core-dim);
   }
   .topic-card .row1{
     display:flex;
@@ -184,45 +228,49 @@
     line-height:1.45;
   }
   .checkmark{
-    width:20px;height:20px;border-radius:5px;
-    border:1px solid var(--ink-faint);
+    width:21px;height:21px;border-radius:50%;
+    border:1.5px solid var(--ink-faint);
     flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    font-size:13px;color:var(--ink);
+    font-size:12px;color:var(--ink);
+    transition:background .18s, border-color .18s;
   }
   .topic-card.selected .checkmark{
     background:var(--core);
     border-color:var(--core);
+    color:#fff;
   }
 
   .primary-btn{
     background:var(--core);
-    color:#2c2210;
-    border:none;
+    color:#fff;
+    border:1.5px solid var(--core);
     padding:15px 30px;
-    border-radius:8px;
+    border-radius:var(--radius-sm);
     font-size:15px;
-    font-weight:600;
+    font-weight:700;
     font-family:var(--sans);
-    letter-spacing:.01em;
-    transition:filter .15s, transform .1s;
+    letter-spacing:.02em;
+    transition:background .15s, color .15s;
   }
-  .primary-btn:hover{filter:brightness(1.08);}
-  .primary-btn:active{transform:translateY(1px);}
+  .primary-btn:hover{background:var(--core-2); border-color:var(--core-2);}
+  .primary-btn:active{background:#6f001f;}
   .primary-btn:disabled{
     background:var(--rule);
+    border-color:var(--rule);
     color:var(--ink-faint);
     cursor:not-allowed;
   }
   .ghost-btn{
     background:transparent;
-    border:1px solid var(--rule);
+    border:1.5px solid var(--rule);
     color:var(--ink-dim);
     padding:14px 24px;
-    border-radius:8px;
+    border-radius:var(--radius-sm);
     font-size:14px;
+    transition:color .15s, border-color .15s, background .15s;
   }
-  .ghost-btn:hover{color:var(--ink);border-color:var(--ink-faint);}
+  .ghost-btn:hover{color:var(--core);border-color:var(--core);background:var(--core-dim);}
 
   .bottom-bar{
     display:flex;
@@ -249,19 +297,22 @@
     gap:10px;
   }
   .count-btn{
-    width:64px;height:64px;
-    border-radius:10px;
-    border:1px solid var(--rule);
+    width:58px;height:58px;
+    border-radius:var(--radius-md);
+    border:1.5px solid var(--rule);
     background:var(--bg-card);
     color:var(--ink);
-    font-family:var(--serif);
-    font-size:24px;
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:20px;
     display:flex;align-items:center;justify-content:center;
-    transition:border-color .15s, background .15s;
+    transition:border-color .15s, background .15s, color .15s;
   }
+  .count-btn:hover{border-color:var(--ink-faint);}
   .count-btn.active{
     border-color:var(--core);
-    background:#faf3e0;
+    border-width:2px;
+    background:var(--core-dim);
     color:var(--core);
   }
   .player-swatches{
@@ -343,11 +394,11 @@
   }
   .board-panel{
     background:var(--bg-elev);
-    border:1px solid var(--rule);
-    border-radius:14px;
-    padding:16px;
+    border:1.5px solid var(--rule);
+    border-radius:var(--radius-lg);
+    padding:18px;
   }
-  .board-panel svg{width:100%;height:auto;display:block;border-radius:6px;}
+  .board-panel svg{width:100%;height:auto;display:block;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08) inset;}
   .cell-track{fill:#f4ecd8;stroke:#cfc4a6;stroke-width:1.5;}
   .cell-track.q{fill:#f7dd8f;stroke:#c9a24b;}
   .cell-star{fill:#f4ecd8;stroke:#cfc4a6;stroke-width:1.5;}
@@ -363,8 +414,10 @@
   .turn-card{
     background:var(--bg-card);
     border:1px solid var(--rule);
-    border-radius:12px;
-    padding:18px;
+    border-left:4px solid var(--core-dim);
+    border-radius:var(--radius-md);
+    padding:20px;
+    transition:border-left-color .25s;
   }
   .turn-card .eyebrow{
     font-family:var(--mono);
@@ -390,26 +443,28 @@
   }
   .dice-face{
     width:58px;height:58px;
-    border-radius:10px;
-    background:var(--bg);
-    border:1px solid var(--rule);
+    border-radius:var(--radius-sm);
+    background:#fff;
+    border:1.5px solid var(--rule);
     display:flex;align-items:center;justify-content:center;
-    font-family:var(--serif);
-    font-size:28px;
-    font-weight:600;
+    font-family:var(--sans);
+    font-size:26px;
+    font-weight:700;
     color:var(--core);
   }
   .roll-btn{
     flex:1;
     background:var(--core);
-    color:#241a08;
-    border:none;
-    border-radius:8px;
+    color:#fff;
+    border:1.5px solid var(--core);
+    border-radius:var(--radius-sm);
     padding:15px 12px;
-    font-weight:600;
+    font-weight:700;
     font-size:14px;
+    transition:background .15s;
   }
-  .roll-btn:disabled{background:var(--rule);color:var(--ink-faint);cursor:not-allowed;}
+  .roll-btn:hover:not(:disabled){background:var(--core-2);}
+  .roll-btn:disabled{background:var(--rule);border-color:var(--rule);color:var(--ink-faint);cursor:not-allowed;}
 
   .hint-line{
     margin-top:12px;
@@ -422,7 +477,7 @@
   .log-card{
     background:var(--bg-card);
     border:1px solid var(--rule);
-    border-radius:12px;
+    border-radius:var(--radius-md);
     padding:16px 18px;
     max-height:260px;
     overflow-y:auto;
@@ -483,9 +538,15 @@
   }
 
   /* ---------- modal ---------- */
+  @keyframes modalIn{
+    from{ opacity:0; transform:scale(.97) translateY(4px); }
+    to{ opacity:1; transform:scale(1) translateY(0); }
+  }
   .modal-overlay{
     position:fixed;inset:0;
-    background:rgba(10,8,6,.72);
+    background:rgba(20,16,10,.55);
+    backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
     display:flex;align-items:center;justify-content:center;
     padding:20px;
     z-index:50;
@@ -493,10 +554,15 @@
   .modal-card{
     background:var(--bg-elev);
     border:1px solid var(--rule);
-    border-radius:14px;
-    padding:28px;
+    border-radius:var(--radius-lg);
+    padding:30px;
     max-width:500px;
     width:100%;
+    box-shadow:var(--shadow-lg);
+    animation:modalIn .22s ease both;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .modal-card{ animation:none; }
   }
   .q-tier-tag{
     display:inline-block;
@@ -556,7 +622,7 @@
   .editor-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
   .editor-head h2{font-family:var(--serif);font-size:20px;margin:0;}
   .editor-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
-  .editor-tabs .chip-btn.active-tab{border-color:var(--core);color:var(--ink);background:#faf3e0;}
+  .editor-tabs .chip-btn.active-tab{border-color:var(--core);color:var(--core);background:var(--core-dim);}
   .editor-q-card{background:var(--bg-card);border:1px solid var(--rule);border-radius:10px;padding:14px;margin-bottom:12px;}
   .editor-input{width:100%;background:var(--bg);border:1px solid var(--rule);color:var(--ink);border-radius:6px;padding:8px 10px;font-family:var(--sans);font-size:13.5px;margin-bottom:8px;resize:vertical;}
   .editor-opt-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
@@ -591,11 +657,16 @@
 </head>
 <body>
 
+<header class="app-banner">GeoLudo</header>
+
 <div id="app">
 
   <!-- ============ SCREEN 1: TOPICS ============ -->
   <section class="screen" id="screen-topics">
     <div class="wrap">
+      <h1 class="title">Choose your topics</h1>
+
+      <div class="strata-caption">GeoLudo difficulty levels</div>
       <div class="strata-bar">
         <span class="s-topsoil"></span><span class="s-subsoil"></span><span class="s-weathered"></span><span class="s-bedrock"></span>
       </div>
@@ -603,7 +674,6 @@
         <span>Topsoil</span><span>Subsoil · Clay</span><span>Weathered rock</span><span>Bedrock</span>
       </div>
 
-      <h1 class="title">Choose your topics</h1>
       <p class="kicker">Every space marked <strong style="color:var(--core)">?</strong> on the board draws a question from what you select here. The closer a pawn gets to the core, the harder the questions get.</p>
 
       <div class="topics-head">
@@ -628,6 +698,9 @@
   <!-- ============ SCREEN 2: SETUP ============ -->
   <section class="screen hidden" id="screen-setup">
     <div class="wrap">
+      <h1 class="title">Set up players</h1>
+
+      <div class="strata-caption">GeoLudo difficulty levels</div>
       <div class="strata-bar">
         <span class="s-topsoil"></span><span class="s-subsoil"></span><span class="s-weathered"></span><span class="s-bedrock"></span>
       </div>
@@ -635,7 +708,6 @@
         <span>Topsoil</span><span>Subsoil · Clay</span><span>Weathered rock</span><span>Bedrock</span>
       </div>
 
-      <h1 class="title">Set up players</h1>
       <p class="kicker" id="setup-kicker">Solo play is a self-paced core sample — race the die to get all four pawns home. Two to four players share one device, taking turns.</p>
 
       <div class="setup-section">
@@ -1083,7 +1155,13 @@
 
   function showScreen(name){
     ['topics','setup','game'].forEach(s=>{
-      document.getElementById('screen-'+s).classList.toggle('hidden', s!==name);
+      const el = document.getElementById('screen-'+s);
+      el.classList.toggle('hidden', s!==name);
+      if(s===name){
+        el.classList.remove('screen-enter');
+        void el.offsetWidth; // restart animation
+        el.classList.add('screen-enter');
+      }
     });
     window.scrollTo(0,0);
   }
@@ -1338,6 +1416,7 @@
     const pl = state.players[state.currentPlayer];
     turnNameText.textContent = pl.name;
     turnDot.style.background = pl.hex;
+    document.querySelector('.turn-card').style.borderLeftColor = pl.hex;
     diceFace.textContent = '–';
     state.canRoll = true;
     state.awaitingSelection = false;
