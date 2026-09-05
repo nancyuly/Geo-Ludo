@@ -222,7 +222,13 @@
     font-weight:600;
     font-size:16.5px;
   }
-  .topic-card .emoji{font-size:19px;}
+  .topic-card .topic-icon{
+    width:22px;height:22px;
+    flex-shrink:0;
+    color:var(--core);
+    display:inline-flex;
+  }
+  .topic-card .topic-icon svg{width:100%;height:100%;display:block;}
   .topic-card .desc{
     font-size:12.5px;
     color:var(--ink-dim);
@@ -579,7 +585,14 @@
     font-size:11.5px;
     color:var(--ink-faint);
     margin-bottom:6px;
+    display:flex;
+    align-items:center;
+    gap:6px;
   }
+  .q-topic-icon{width:14px;height:14px;flex-shrink:0;display:inline-flex;color:var(--ink-faint);}
+  .q-topic-icon svg{width:100%;height:100%;display:block;}
+  .tab-icon{width:14px;height:14px;display:inline-flex;vertical-align:-2px;margin-right:6px;color:currentColor;}
+  .tab-icon svg{width:100%;height:100%;display:block;}
   .q-text{
     font-family:var(--serif);
     font-size:19px;
@@ -786,145 +799,173 @@
   ============================================================ */
 
   const TOPICS = [
-    { id:'index',       emoji:'🧱', name:'Index Properties & Classification', desc:'Atterberg limits, USCS, grain size', intro:true },
-    { id:'compaction',  emoji:'🔨', name:'Compaction', desc:'Proctor tests, OMC, dry unit weight', intro:true },
-    { id:'permeability',emoji:'💧', name:'Permeability & Seepage', desc:"Darcy's law, flow nets, k", intro:true },
-    { id:'effective',   emoji:'⚖️', name:'Effective Stress', desc:"Terzaghi's principle, pore pressure", intro:true },
-    { id:'consolidation',emoji:'⏳', name:'Consolidation & Settlement', desc:'Cc, Cv, time rate, OCR', intro:false },
-    { id:'shear',       emoji:'🪨', name:'Shear Strength', desc:'Mohr-Coulomb, triaxial, direct shear', intro:false },
-    { id:'lateral',     emoji:'🧰', name:'Lateral Earth Pressure', desc:'Rankine, Coulomb, retaining walls', intro:false },
-    { id:'bearing',     emoji:'🏗', name:'Bearing Capacity & Foundations', desc:"Terzaghi's equation, shallow footings", intro:false },
-    { id:'unsat',       emoji:'❄️', name:'Unsaturated Soils & Cold Regions', desc:'Matric suction, SWCC, frost heave', intro:false },
+    { id:'deposition',   icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 7h18"/><path d="M3 12h14"/><path d="M3 17h18"/><circle cx="8" cy="9.5" r=".7" fill="currentColor" stroke="none"/><circle cx="15" cy="14.5" r=".7" fill="currentColor" stroke="none"/><circle cx="10" cy="19.5" r=".7" fill="currentColor" stroke="none"/></svg>', name:'Soil Deposition and Formation', desc:'How residual and transported soils form', intro:true },
+    { id:'investigation',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 8h16"/><path d="M12 8v12"/><path d="M9 20h6"/><path d="M12 3l2.2 3.4h-4.4L12 3z" fill="currentColor" stroke="none"/></svg>', name:'Subsurface Investigation', desc:'Borings, sampling, SPT and CPT', intro:true },
+    { id:'mineralogy',   icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4z"/><path d="M12 3v18M5 7l7 4 7-4M5 17l7-4 7 4" stroke-width="1" opacity=".55"/></svg>', name:'Soil Mineralogy and Structure', desc:'Clay minerals, fabric, particle structure', intro:true },
+    { id:'description',  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>', name:'Engineering Description of Soil', desc:'Visual-manual field description, ASTM D2488', intro:true },
+    { id:'effective',    icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="8" r="3"/><circle cx="17" cy="16" r="3"/><path d="M9.2 10.2l5.6 5.6"/><path d="M4 20h16" stroke-width="1" opacity=".45"/></svg>', name:'Effective Stress Principle', desc:"Terzaghi's principle, pore pressure", intro:false },
+    { id:'flow',         icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 4 5 6.8 5 9.5A5 5 0 0 1 7 12.5C7 9.8 9 7 12 3z"/><path d="M4 20h16" stroke-width="1" opacity=".45"/></svg>', name:'Flow of Water through Soils', desc:"Darcy's law, seepage, flow nets", intro:false },
+    { id:'compressibility',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14"/><path d="M5 19h14"/><path d="M7 5v2l10 2-10 2 10 2-10 2v2"/></svg>', name:'Compressibility', desc:'Cc, Cv, consolidation, time rate', intro:false },
+    { id:'shear',        icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="7"/><rect x="7" y="13" width="14" height="7"/><path d="M17 7.5h4m-2-2l2 2-2 2"/></svg>', name:'Shear Strength of Soil', desc:'Mohr-Coulomb, triaxial, direct shear', intro:false },
+    { id:'compaction',   icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M8 15h9a3 3 0 0 0 3-3V9"/><path d="M3 20h6" stroke-width="1" opacity=".45"/></svg>', name:'Construction Procedures/Compaction', desc:'Proctor tests, OMC, dry unit weight', intro:false },
+    { id:'bearing',      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v7"/><path d="M8 10h8l2 4H6l2-4z"/><path d="M3 18h18"/></svg>', name:'Bearing Capacity and Foundation Design', desc:"Terzaghi's equation, shallow footings", intro:false },
+    { id:'lateral',      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v14h14"/><path d="M9 17l9-9" stroke-width="1" opacity=".45"/></svg>', name:'Earth Pressure and Retaining Wall Design', desc:'Rankine, Coulomb, retaining walls', intro:false },
   ];
 
-  const TIERS = ['topsoil','subsoil','weathered','bedrock'];
-  const TIER_LABEL = { topsoil:'Level 1', subsoil:'Level 2', weathered:'Level 3', bedrock:'Level 4' };
-  const TIER_COLOR = { topsoil:'var(--topsoil)', subsoil:'var(--subsoil)', weathered:'var(--weathered)', bedrock:'var(--bedrock)' };
+  const TIERS = ['level1','level2','level3','level4'];
+  const TIER_LABEL = { level1:'Level 1', level2:'Level 2', level3:'Level 3', level4:'Level 4' };
+  const TIER_COLOR = { level1:'var(--topsoil)', level2:'var(--subsoil)', level3:'var(--weathered)', level4:'var(--bedrock)' };
 
   function Q(q, options, correct){ return { q, options, correct }; }
 
   const DEFAULT_QUESTIONS = {
-    index: { topsoil:[
-        Q('What does the liquid limit (LL) mark?', ['The boundary between liquid and plastic states','The boundary between plastic and semi-solid states','The maximum dry density','The natural water content'],0),
-        Q('In the USCS, a soil with more than 50% retained on the No. 200 sieve is classified as:', ['Fine-grained','Coarse-grained','Organic','Peat'],1),
-      ], subsoil:[
-        Q('A soil has LL = 40% and PL = 20%. What is its plasticity index (PI)?', ['20','60','2','0.5'],0),
-        Q('Which USCS symbol denotes a well-graded sand with a clay binder?', ['SW-SC','CL','GP','MH'],0),
-      ], weathered:[
-        Q('A soil plots above the A-line with LL = 55%. Its USCS symbol is:', ['CH','MH','OL','CL'],0),
-        Q('The coefficient of uniformity Cu = D60/D10. A soil with Cu = 3 is best described as:', ['Uniformly graded','Well graded','Gap graded','Well compacted'],0),
-      ], bedrock:[
-        Q('For a soil to classify as SW under the USCS, it must satisfy Cu ≥ 6 and 1 ≤ Cc ≤ 3, where Cc equals:', ['(D30)² / (D10 × D60)','D60 / D10','D30 / D60','D10 × D60'],0),
-        Q('A soil has LL = 35, PI = 12. It plots ___ the A-line, giving it a ___ classification.', ['Above; CL','Below; ML','Above; MH','Below; CH'],0),
+    deposition: { level1:[
+        Q('Which process breaks down parent rock into soil particles through physical weathering?', ['Mechanical disintegration from temperature change and frost action','Chemical dissolution only','Biological decay only','Magnetic separation'],0),
+        Q('Residual soils form when:', ['Weathered material remains at its place of origin','Material is transported far from its source','Material is deposited by wind only','Material crystallizes from magma'],0),
+      ], level2:[
+        Q('Alluvial soils are deposited primarily by:', ['Flowing water and rivers','Wind','Glacial ice','Volcanic eruption'],0),
+        Q('Loess is a soil formed by:', ['Wind-blown deposition of fine silt','River deposition of gravel','Marine deposition of clay','Glacial till deposition'],0),
+      ], level3:[
+        Q('Glacial till is characterized by:', ['A poorly sorted mixture of grain sizes from clay to boulders','Uniformly graded fine sand','Perfectly rounded, well-sorted gravel','Pure organic peat'],0),
+        Q('Which transported soil type is typically deposited by gravity along steep slopes?', ['Colluvium','Alluvium','Loess','Till'],0),
+      ], level4:[
+        Q('Marine clays later exposed to fresh water can develop a metastable, high-sensitivity structure known as:', ['Quick clay','Loess','Varved clay','Laterite'],0),
+        Q('Varved clays, formed in glacial lake environments, are distinguished by:', ['Alternating light (coarser) and dark (finer) seasonal layers','A single uniform grain size throughout','Random cementation with no layering','High organic content only'],0),
       ] },
-    compaction: { topsoil:[
-        Q("What does 'OMC' stand for in compaction testing?", ['Optimum Moisture Content','Overall Material Capacity','Original Mix Composition','Outer Mold Circumference'],0),
-        Q('The Standard Proctor test measures the relationship between:', ['Dry unit weight and moisture content','Shear strength and depth','Permeability and void ratio','Settlement and time'],0),
-      ], subsoil:[
-        Q('As compaction moisture increases past the optimum, dry unit weight generally:', ['Decreases','Increases','Stays constant','Becomes zero'],0),
-        Q('Compared to the Standard Proctor test, the Modified Proctor test uses:', ['Higher compactive effort','Lower compactive effort','The same effort, a different mold','No compaction, only sieving'],0),
-      ], weathered:[
-        Q('The zero-air-voids line on a compaction curve represents:', ['The theoretical maximum dry density at 100% saturation for a given moisture','The OMC point exactly','The minimum achievable density','The plastic limit'],0),
-        Q('Field density is commonly checked in-situ using:', ['A sand cone or nuclear gauge method','A hydrometer test','A triaxial test','A consolidometer'],0),
-      ], bedrock:[
-        Q('A clay compacted dry of optimum tends to develop a ___ structure, giving ___ permeability than wet-of-optimum compaction.', ['Flocculated; higher','Dispersed; lower','Flocculated; lower','Dispersed; higher'],0),
-        Q('Compaction specs often require 95% of the maximum dry density from a Proctor test; this percentage is termed:', ['Relative compaction','Relative density','Degree of saturation','Void ratio ratio'],0),
+    investigation: { level1:[
+        Q('The primary purpose of a subsurface investigation is to:', ['Determine soil and groundwater conditions before design and construction','Measure the traffic load on a highway','Calculate a building\u2019s electrical load','Test the strength of finished concrete'],0),
+        Q('A borehole is typically advanced to collect:', ['Soil samples and stratigraphy information at depth','Air quality readings only','Surface topography data','Traffic count data'],0),
+      ], level2:[
+        Q('The Standard Penetration Test (SPT) reports results as:', ['Blow count N, in blows per foot of penetration','Shear wave velocity only','A pH value','A dry unit weight directly'],0),
+        Q('A disturbed sample is generally suitable for:', ['Classification and index property tests','Undrained shear strength testing','Consolidation testing','Permeability testing requiring intact structure'],0),
+      ], level3:[
+        Q('Thin-walled Shelby tube sampling is used to obtain:', ['Relatively undisturbed cohesive samples for strength and consolidation testing','Bulk disturbed samples for compaction testing only','Rock cores from bedrock','Groundwater chemistry samples'],0),
+        Q('Cone Penetration Testing (CPT) provides continuous data on:', ['Tip resistance and sleeve friction with depth','Only the water table elevation','Only surface soil color','Only the plastic limit'],0),
+      ], level4:[
+        Q('Boring spacing and depth in an investigation program are primarily governed by:', ["The project's size, subsurface variability, and structural loads", "The drilling rig's brand", 'The time of year only', 'The number of engineers on site'],0),
+        Q('In SPT sampling, a common correction applied to the raw N-value accounts for:', ['Overburden (effective stress) to normalize N to a reference stress','The drill rig\u2019s paint color','Ambient air temperature','Nothing \u2014 corrections are never applied'],0),
       ] },
-    permeability: { topsoil:[
-        Q("Darcy's law relates flow velocity to:", ['The hydraulic gradient','Void ratio only','Shear stress','Temperature only'],0),
-        Q('Which soil type generally has the highest permeability?', ['Clean gravel','Clay','Silt','Colloids'],0),
-      ], subsoil:[
-        Q('In a flow net, flow lines and equipotential lines intersect at:', ['Right angles','45 degrees','They never intersect','Random angles'],0),
-        Q('The coefficient of permeability k is typically found in the lab using a:', ['Constant-head or falling-head permeameter','Consolidometer','Direct shear box','Triaxial cell only'],0),
-      ], weathered:[
-        Q('Seepage discharge from a flow net is q = k·H·(Nf/Nd), where Nf and Nd represent:', ['The number of flow channels and equipotential drops','The number of dams and drains','Void ratio and porosity','Safety factors'],0),
-        Q("A critical hydraulic gradient causing 'quick' (boiling) sand occurs when:", ['Upward seepage force equals the submerged weight of the soil','Permeability equals zero','The soil becomes overconsolidated','Effective stress is at its maximum'],0),
-      ], bedrock:[
-        Q('For a stratified soil with layers of differing k, the equivalent horizontal permeability is generally ___ the equivalent vertical permeability.', ['Greater than','Less than','Equal to','Unrelated to'],0),
-        Q('The critical hydraulic gradient ic is approximately equal to:', ['(Gs − 1) / (1 + e)','Gs × e','k / i','1 / Cc'],0),
+    mineralogy: { level1:[
+        Q('Which clay mineral group is generally associated with the highest swelling potential?', ['Smectite (montmorillonite)','Kaolinite','Quartz','Mica'],0),
+        Q('Soil particles are broadly divided by size into gravel, sand, silt, and:', ['Clay','Rock','Bedrock','Aggregate'],0),
+      ], level2:[
+        Q('Kaolinite has relatively low activity and swelling potential mainly because of its:', ['Strongly bonded 1:1 layer structure with limited water attraction','Extremely high specific surface area','Lack of any crystalline structure','High organic content'],0),
+        Q('A flocculated clay structure, common in marine deposition, refers to particles arranged in:', ['An edge-to-face, honeycomb-like arrangement','Perfectly parallel, face-to-face stacks','No particle-to-particle contact at all','A pattern found only in clean sands'],0),
+      ], level3:[
+        Q('The high plasticity of smectite clays is largely due to:', ['A large specific surface area and weak interlayer bonding that allows water absorption between layers','Very large individual particle size','Absence of any electrical charge','High quartz content'],0),
+        Q('Isomorphous substitution in clay minerals refers to:', ['Replacement of one atom by another of similar size in the lattice, creating a net negative charge','The physical breaking of a mineral into smaller pieces','The melting and recrystallization of a mineral','The complete dissolution of a mineral in water'],0),
+      ], level4:[
+        Q('The cation exchange capacity (CEC) of a clay mineral measures:', ['Its ability to adsorb and exchange cations on particle surfaces, influencing plasticity','Its unconfined compressive strength','Its coefficient of permeability','Its grain-size distribution slope'],0),
+        Q('Which factor most directly controls a clay mineral\u2019s specific surface area and water-holding capacity?', ['The thickness and stacking of its crystalline layers','Its color','Its cost per ton','Its magnetic susceptibility'],0),
       ] },
-    effective: { topsoil:[
+    description: { level1:[
+        Q('A visual-manual soil description typically includes:', ['Color, moisture condition, consistency, and estimated grain size','Only the soil\u2019s market price','Only its geologic age','Only its GPS coordinates'],0),
+        Q("Consistency for fine-grained soils (e.g. 'soft', 'stiff') is generally estimated in the field using:", ['Simple hand tests like thumb penetration resistance','A full triaxial test rig','A seismometer','A pH meter'],0),
+      ], level2:[
+        Q("In an engineering description, 'moist' versus 'wet' versus 'dry' refers to:", ["The soil's field moisture condition", 'Its geologic origin', 'Its mineral composition', 'Its permeability class'],0),
+        Q("Describing a soil as 'silty sand with trace gravel' communicates:", ['The dominant and minor grain-size components present','The soil\u2019s exact unit weight','The soil\u2019s exact shear strength','The soil\u2019s precise age'],0),
+      ], level3:[
+        Q('ASTM D2488 governs:', ['Description and identification of soils by visual-manual procedures','Concrete mix design','Steel reinforcement detailing','Asphalt paving specifications'],0),
+        Q('A geotechnical boring log typically links visual-manual description with:', ['Laboratory index test results for verification and classification','The contractor\u2019s invoice','The architect\u2019s floor plan','The building\u2019s HVAC layout'],0),
+      ], level4:[
+        Q('When a field description and laboratory USCS classification disagree, standard practice is to:', ['Report both and rely on the laboratory classification as the more rigorous result','Always trust the field description only','Discard both and guess','Average the two arbitrarily'],0),
+        Q("Describing 'stratification' in a soil sample refers to:", ['Visible layering or bedding reflecting depositional history', 'The sample\u2019s chemical pH', 'The sample\u2019s plastic limit', 'The sample\u2019s permeability coefficient only'],0),
+      ] },
+    effective: { level1:[
         Q("Terzaghi's principle states total stress equals:", ['Effective stress plus pore water pressure','Effective stress minus pore pressure','Pore pressure only','Shear strength plus friction angle'],0),
         Q('Effective stress primarily controls:', ["Soil strength and deformation behavior",'Water color','Grain shape','Mineral hardness'],0),
-      ], subsoil:[
+      ], level2:[
         Q('Below the water table, pore pressure at a point is generally:', ['γw × the height of water above that point','γsat × depth z','Zero, always','Total stress × porosity'],0),
         Q('Capillary rise above the water table can cause pore pressure to become:', ['Negative (suction)','Doubled','Equal to atmospheric, always','Irrelevant to effective stress'],0),
-      ], weathered:[
+      ], level3:[
         Q('During rapid drawdown of a reservoir, effective stress in the embankment can:', ['Decrease, as excess pore pressure lags behind','Increase instantly','Stay perfectly constant','Become negative infinity'],0),
         Q('Under an artesian condition, elevated pore pressure at a confined aquifer causes effective stress there to:', ['Decrease compared to normal hydrostatic conditions','Increase sharply','Become undefined','Equal total stress'],0),
-      ], bedrock:[
+      ], level4:[
         Q('Under upward seepage, effective stress at depth z falls to zero when the hydraulic gradient equals:', ['The critical gradient ic','Zero, always','The coefficient of permeability','The void ratio'],0),
         Q("Bishop's effective stress equation for unsaturated soils introduces a parameter χ that accounts for:", ['The proportion of suction acting on the soil skeleton','Grain size distribution','The plastic limit','Compaction energy'],0),
       ] },
-    consolidation: { topsoil:[
+    flow: { level1:[
+        Q("Darcy's law relates flow velocity to:", ['The hydraulic gradient','Void ratio only','Shear stress','Temperature only'],0),
+        Q('Which soil type generally has the highest permeability?', ['Clean gravel','Clay','Silt','Colloids'],0),
+      ], level2:[
+        Q('In a flow net, flow lines and equipotential lines intersect at:', ['Right angles','45 degrees','They never intersect','Random angles'],0),
+        Q('The coefficient of permeability k is typically found in the lab using a:', ['Constant-head or falling-head permeameter','Consolidometer','Direct shear box','Triaxial cell only'],0),
+      ], level3:[
+        Q('Seepage discharge from a flow net is q = k·H·(Nf/Nd), where Nf and Nd represent:', ['The number of flow channels and equipotential drops','The number of dams and drains','Void ratio and porosity','Safety factors'],0),
+        Q("A critical hydraulic gradient causing 'quick' (boiling) sand occurs when:", ['Upward seepage force equals the submerged weight of the soil','Permeability equals zero','The soil becomes overconsolidated','Effective stress is at its maximum'],0),
+      ], level4:[
+        Q('For a stratified soil with layers of differing k, the equivalent horizontal permeability is generally ___ the equivalent vertical permeability.', ['Greater than','Less than','Equal to','Unrelated to'],0),
+        Q('The critical hydraulic gradient ic is approximately equal to:', ['(Gs − 1) / (1 + e)','Gs × e','k / i','1 / Cc'],0),
+      ] },
+    compressibility: { level1:[
         Q('Consolidation settlement is primarily associated with:', ['Gradual expulsion of pore water from fine-grained soils under load','Instant elastic compression of sand','Chemical weathering','Freeze-thaw cycles'],0),
         Q('The compression index Cc describes:', ['The slope of void ratio versus log-pressure in virgin compression','Permeability change with depth','Shear strength gain','A grain-size distribution slope'],0),
-      ], subsoil:[
+      ], level2:[
         Q('A soil with OCR > 1 is described as:', ['Overconsolidated','Normally consolidated','Underconsolidated','Unconsolidated'],0),
         Q('The coefficient of consolidation Cv is used to estimate:', ['The time rate of settlement','The ultimate magnitude of settlement','Shear strength','Permeability directly, with no other data'],0),
-      ], weathered:[
+      ], level3:[
         Q('Doubling the drainage path length of a consolidating clay layer changes the time to a given degree of consolidation by roughly a factor of:', ['4','2','0.5','1'],0),
         Q('Secondary compression (creep) in clay occurs mainly:', ['After excess pore pressure has largely dissipated, from particle rearrangement','Before any primary consolidation','Only in sands','Only under seismic loading'],0),
-      ], bedrock:[
+      ], level4:[
         Q("Using Casagrande's method, preconsolidation pressure is estimated from the e-log(p) curve at the point of:", ['Maximum curvature','Minimum void ratio','Zero effective stress','Intersection with the x-axis'],0),
         Q('For a doubly-drained clay layer of thickness H, the characteristic drainage path used with the time factor Tv is:', ['H/2','H','2H','H/4'],0),
       ] },
-    shear: { topsoil:[
+    shear: { level1:[
         Q('The Mohr-Coulomb failure criterion relates shear strength to:', ['Cohesion and normal effective stress, via the friction angle','Permeability and void ratio','Settlement and time','Grain shape only'],0),
         Q('In a direct shear test, the soil sample is sheared along:', ['A predetermined horizontal plane','A random 3D failure surface','A vertical plane only','A curved surface'],0),
-      ], subsoil:[
+      ], level2:[
         Q('Undrained shear strength (cu) is most relevant for:', ['Short-term loading of saturated clays','Long-term drained sand behavior','Permeability testing','Compaction control'],0),
         Q('In a triaxial test, the cell pressure applied to the sample represents:', ['The confining (chamber) pressure','The deviator stress only','Pore water pressure directly','The shear strength'],0),
-      ], weathered:[
+      ], level3:[
         Q('For a normally consolidated clay in a CU triaxial test, the effective friction angle is typically found by plotting:', ['Mohr circles in terms of effective stress at failure','Total stress circles only','Void ratio versus time','Settlement versus load'],0),
         Q('A dilative (dense) sand under drained shear tends to show a peak strength ___ the critical-state strength.', ['Above','Below','Equal to','Unrelated to'],0),
-      ], bedrock:[
+      ], level4:[
         Q('The Skempton pore pressure parameter A relates the change in pore pressure to:', ['The change in deviator stress during undrained loading','Permeability directly','Grain size','Total unit weight'],0),
         Q('For overconsolidated clay, negative pore pressures during undrained shear shift the effective stress path ___ of the total stress path.', ['To the right','To the left','Straight down','It never differs'],0),
       ] },
-    lateral: { topsoil:[
-        Q('The at-rest earth pressure coefficient K0 applies to a wall that:', ['Does not move relative to the retained soil','Moves away from the soil substantially','Moves into the soil substantially','Is fully submerged only'],0),
-        Q('Active earth pressure occurs when a retaining wall:', ['Moves slightly away from the backfill','Moves into the backfill','Remains perfectly rigid and fixed','Is removed entirely'],0),
-      ], subsoil:[
-        Q("Rankine's theory assumes the back of the wall is:", ['Vertical and frictionless against the soil','Always battered at 45°','Rough, with high friction','Irrelevant to the analysis'],0),
-        Q('Passive earth pressure is generally ___ active earth pressure for the same soil.', ['Much larger than','Much smaller than','Exactly equal to','Unrelated to'],0),
-      ], weathered:[
-        Q("Coulomb's theory, unlike Rankine's, explicitly accounts for:", ['Wall friction and a sloped wall back','Only a horizontal ground surface','Zero-friction-angle soils','Pore pressure exclusively'],0),
-        Q('For a cohesive backfill, the active pressure distribution can include a zone of ___ near the top of the wall.', ['Tension (negative pressure)','Doubled passive pressure','Zero shear','Infinite pressure'],0),
-      ], bedrock:[
-        Q('In Rankine active conditions for a cohesive soil, the tension crack depth zc is approximately:', ['2c / (γ·√Ka)','c / γ','Ka / γ','γ / 2c'],0),
-        Q('For a wall with a sloping backfill at angle β less than φ, the Rankine active coefficient Ka becomes a function of:', ['Both φ and β','Only the wall height','Only the unit weight','Only the surcharge'],0),
+    compaction: { level1:[
+        Q("What does 'OMC' stand for in compaction testing?", ['Optimum Moisture Content','Overall Material Capacity','Original Mix Composition','Outer Mold Circumference'],0),
+        Q('The Standard Proctor test measures the relationship between:', ['Dry unit weight and moisture content','Shear strength and depth','Permeability and void ratio','Settlement and time'],0),
+      ], level2:[
+        Q('As compaction moisture increases past the optimum, dry unit weight generally:', ['Decreases','Increases','Stays constant','Becomes zero'],0),
+        Q('Compared to the Standard Proctor test, the Modified Proctor test uses:', ['Higher compactive effort','Lower compactive effort','The same effort, a different mold','No compaction, only sieving'],0),
+      ], level3:[
+        Q('The zero-air-voids line on a compaction curve represents:', ['The theoretical maximum dry density at 100% saturation for a given moisture','The OMC point exactly','The minimum achievable density','The plastic limit'],0),
+        Q('Field density is commonly checked in-situ using:', ['A sand cone or nuclear gauge method','A hydrometer test','A triaxial test','A consolidometer'],0),
+      ], level4:[
+        Q('A clay compacted dry of optimum tends to develop a ___ structure, giving ___ permeability than wet-of-optimum compaction.', ['Flocculated; higher','Dispersed; lower','Flocculated; lower','Dispersed; higher'],0),
+        Q('Compaction specs often require 95% of the maximum dry density from a Proctor test; this percentage is termed:', ['Relative compaction','Relative density','Degree of saturation','Void ratio ratio'],0),
       ] },
-    bearing: { topsoil:[
+    bearing: { level1:[
         Q("Terzaghi's bearing capacity equation estimates:", ['The ultimate load per unit area a shallow foundation can support before failure','The settlement rate over time','The permeability of the founding soil','The plasticity index of the soil'],0),
         Q("A 'shallow foundation' is generally one where the embedment depth is:", ['Small compared to its width','Much greater than its width','At bedrock only','Irrelevant to the classification'],0),
-      ], subsoil:[
+      ], level2:[
         Q("In Terzaghi's equation, the bearing capacity factors Nc, Nq and Nγ primarily depend on:", ["The soil's friction angle φ","The foundation's construction material","The wall's height",'The water content of the concrete'],0),
         Q('Increasing the width of a footing on cohesionless sand generally:', ['Increases the ultimate bearing capacity','Decreases the ultimate bearing capacity','Has no effect at all','Only affects settlement, never capacity'],0),
-      ], weathered:[
+      ], level3:[
         Q('A rise in the water table to the base of a footing generally causes bearing capacity (via the Nγ term) to:', ['Decrease, since effective unit weight is reduced','Increase substantially','Remain unaffected','Become infinite'],0),
         Q('For footings on saturated clay under short-term (undrained) loading, bearing capacity is commonly analyzed using:', ['A φ = 0 analysis with undrained shear strength','The fully drained friction angle only','Permeability tests','Compaction curves'],0),
-      ], bedrock:[
+      ], level4:[
         Q("Meyerhof's bearing capacity equation extends Terzaghi's approach by adding correction factors for:", ['Depth, shape and load inclination','Soil color only','Groundwater salinity only','Mineral hardness'],0),
         Q('For an eccentrically loaded footing, the effective width B′ used in bearing capacity calculations is:', ['B minus twice the eccentricity','B plus the eccentricity','Always equal to B','Unrelated to the eccentricity'],0),
       ] },
-    unsat: { topsoil:[
-        Q('Matric suction in an unsaturated soil arises mainly from:', ['Capillary and adsorptive forces between water and soil particles','Dissolved salt content','Grain color','Magnetic properties of minerals'],0),
-        Q('Frost heave in soils is most associated with:', ['Ice lenses that draw in and freeze pore water','Rapid drainage of all pore water','High-permeability sand with no fines','Warm climates only'],0),
-      ], subsoil:[
-        Q('The soil-water characteristic curve (SWCC) describes the relationship between:', ['Suction and water content (or degree of saturation)','Shear strength and time','Permeability and temperature only','Grain size and mineral type'],0),
-        Q('Frost-susceptible soils are typically:', ['Silts and fine-grained soils with capillary rise potential','Clean gravels only','Dense clean sands only','Any soil, regardless of grain size'],0),
-      ], weathered:[
-        Q('As matric suction increases in an unsaturated soil, apparent shear strength generally:', ['Increases, due to suction-induced effective stress','Decreases to zero','Becomes irrelevant','Always decreases'],0),
-        Q('Permafrost regions pose foundation challenges primarily because of:', ['Thaw settlement when ground ice melts under heat from structures','Excessive permeability','Very high bearing capacity, always','Absence of any moisture'],0),
-      ], bedrock:[
-        Q("In Fredlund's extended shear strength equation for unsaturated soils, the added strength term involves suction multiplied by:", ['tan(φᵇ), an angle describing strength gain with suction','The coefficient of permeability','The compression index','The liquidity index'],0),
-        Q('Segregation potential theory for frost heave relates the heave rate to:', ['The rate of water flow to the freezing front, driven by suction gradients','The total unit weight of the soil only','The plastic limit only','The friction angle only'],0),
+    lateral: { level1:[
+        Q('The at-rest earth pressure coefficient K0 applies to a wall that:', ['Does not move relative to the retained soil','Moves away from the soil substantially','Moves into the soil substantially','Is fully submerged only'],0),
+        Q('Active earth pressure occurs when a retaining wall:', ['Moves slightly away from the backfill','Moves into the backfill','Remains perfectly rigid and fixed','Is removed entirely'],0),
+      ], level2:[
+        Q("Rankine's theory assumes the back of the wall is:", ['Vertical and frictionless against the soil','Always battered at 45°','Rough, with high friction','Irrelevant to the analysis'],0),
+        Q('Passive earth pressure is generally ___ active earth pressure for the same soil.', ['Much larger than','Much smaller than','Exactly equal to','Unrelated to'],0),
+      ], level3:[
+        Q("Coulomb's theory, unlike Rankine's, explicitly accounts for:", ['Wall friction and a sloped wall back','Only a horizontal ground surface','Zero-friction-angle soils','Pore pressure exclusively'],0),
+        Q('For a cohesive backfill, the active pressure distribution can include a zone of ___ near the top of the wall.', ['Tension (negative pressure)','Doubled passive pressure','Zero shear','Infinite pressure'],0),
+      ], level4:[
+        Q('In Rankine active conditions for a cohesive soil, the tension crack depth zc is approximately:', ['2c / (γ·√Ka)','c / γ','Ka / γ','γ / 2c'],0),
+        Q('For a wall with a sloping backfill at angle β less than φ, the Rankine active coefficient Ka becomes a function of:', ['Both φ and β','Only the wall height','Only the unit weight','Only the surcharge'],0),
       ] },
   };
 
   let QUESTIONS = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
-  const QBANK_KEY = 'geoludo_qbank_v1';
+  const QBANK_KEY = 'geoludo_qbank_v2';
 
   function loadQuestionBank(){
     try{
@@ -1018,7 +1059,7 @@
       card.setAttribute('type','button');
       card.innerHTML = `
         <div class="row1">
-          <div class="icon-name"><span class="emoji">${t.emoji}</span>${t.name}</div>
+          <div class="icon-name"><span class="topic-icon">${t.icon}</span>${t.name}</div>
           <div class="checkmark">${sel?'✓':''}</div>
         </div>
         <div class="desc">${t.desc}</div>
@@ -1272,10 +1313,10 @@
   }
 
   function tierForSteps(steps){
-    if(steps<=16) return 'topsoil';
-    if(steps<=32) return 'subsoil';
-    if(steps<=48) return 'weathered';
-    return 'bedrock';
+    if(steps<=16) return 'level1';
+    if(steps<=32) return 'level2';
+    if(steps<=48) return 'level3';
+    return 'level4';
   }
 
   /* ============================================================
@@ -1624,7 +1665,7 @@
     overlay.innerHTML = `
       <div class="modal-card">
         <div class="q-tier-tag" style="background:${TIER_COLOR[tier]};color:var(--ink)">${TIER_LABEL[tier]}</div>
-        <div class="q-topic">${topic.emoji} ${topic.name}</div>
+        <div class="q-topic"><span class="q-topic-icon">${topic.icon}</span>${topic.name}</div>
         <p class="q-text">${question.q}</p>
         ${state.timerEnabled ? `<div class="q-timer-track"><div class="q-timer-fill" id="q-timer-fill" style="width:100%"></div></div>` : ''}
         <div class="q-options" id="q-options"></div>
@@ -1693,7 +1734,7 @@
   }
 
   function openEditor(){
-    let editTopic = TOPICS[0].id, editTier = 'topsoil';
+    let editTopic = TOPICS[0].id, editTier = 'level1';
 
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -1727,7 +1768,7 @@
       TOPICS.forEach(t=>{
         const b = document.createElement('button');
         b.className = 'chip-btn' + (t.id===editTopic ? ' active-tab':'');
-        b.textContent = `${t.emoji} ${t.name}`;
+        b.innerHTML = `<span class="tab-icon">${t.icon}</span>${t.name}`;
         b.addEventListener('click', ()=>{ editTopic=t.id; renderTabs(); renderQList(); });
         topicTabs.appendChild(b);
       });
