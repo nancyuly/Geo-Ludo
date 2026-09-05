@@ -1,36 +1,86 @@
+<!--
+  ============================================================
+  GEOLUDO — WHERE TO EDIT THINGS
+  ============================================================
+  This whole game is one file. You don't need to know how to code to
+  make most changes — just find the right spot below and edit the text
+  or numbers. Search (Ctrl+F / Cmd+F) for these landmarks:
+
+  - "MAIN COLORS TO EDIT"      → the maroon/accent color and text colors (CSS, near the top)
+  - "FONT TO EDIT"             → the typeface used everywhere
+  - "TOPICS TO EDIT"           → the 11 topic cards: names, descriptions, icons
+  - "QUESTION BANK TO EDIT"    → all the quiz questions, by topic and difficulty
+  - "PLAYER COLORS TO EDIT"    → the default Green/Yellow/Red/Blue pawn colors/names
+  - "APP TITLE TO EDIT"        → the "GeoLudo" banner text and page title
+
+  Anything NOT flagged with one of the labels above — especially the
+  board geometry, dice logic, and turn-taking code further down — runs
+  the actual game mechanics. It's best left alone unless you're
+  comfortable reading JavaScript, since small changes there can break
+  the board layout or movement rules.
+
+  Reminder: this file also has an in-game "Edit questions" button and a
+  "Customize colors" button that let players change those two things
+  without touching any code at all — editing here just changes the
+  defaults everyone starts with.
+  ============================================================
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- APP TITLE TO EDIT: this is the browser tab title -->
 <title>GeoLudo — a soil mechanics core sample</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- FONT TO EDIT: this loads Jost (a free Futura look-alike) as a backup for
+     when a viewer's device doesn't have Futura or Malgun Gothic installed.
+     To use a different Google Font, swap "Jost" for its name here AND in the
+     --serif / --sans variables a few lines down. -->
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
+    /* MAIN COLORS TO EDIT — the page background and card backgrounds.
+       Keep these white/near-white unless you want a tinted background. */
     --bg:#ffffff;
     --bg-elev:#ffffff;
     --bg-card:#ffffff;
+
+    /* These four feed the little difficulty-level dots (Level 1-4) and
+       nothing else — safe to recolor if you want a different progression. */
     --topsoil:#8b9a6e;
     --subsoil:#bb8264;
     --weathered:#a49b8a;
     --bedrock:#4a4038;
+
+    /* MAIN COLORS TO EDIT — the maroon accent used for the app banner, the
+       "Choose your topics" title bar, buttons, selected topic cards, and
+       icon colors. --core is the main shade; --core-2 is used on hover;
+       --core-dim is the pale tint behind selected cards. Change --core to
+       any hex color to reskin the whole app's accent color at once. */
     --core:#8c0028;
     --core-2:#a3253f;
     --core-dim:#f3dde3;
+
+    /* MAIN COLORS TO EDIT — body text colors, from darkest to lightest. */
     --ink:#1b1b1b;
     --ink-dim:#4d4d4d;
     --ink-faint:#8a8a8a;
-    --rule:#c9c9c9;
-    --good:#2f7d43;
-    --bad:#a23b32;
+    --rule:#c9c9c9;   /* the thin gray border color used on cards/buttons */
+    --good:#2f7d43;   /* correct-answer green in the quiz modal */
+    --bad:#a23b32;    /* wrong-answer red in the quiz modal */
 
+  /* Ludo board pawn colors — see "PLAYER COLORS TO EDIT" further down in
+     the JavaScript for the editable version with names; these four are
+     only used by CSS custom-color inputs and are safe to leave alone. */
     --green:#2fa84f;
     --yellow:#f0c419;
     --red:#e0473f;
     --blue:#2f6fd6;
 
+    /* Corner rounding and shadow depth — cosmetic only, safe to tweak but
+       not required. Bigger numbers = rounder corners / heavier shadows. */
     --radius-sm:6px;
     --radius-md:8px;
     --radius-lg:10px;
@@ -38,9 +88,14 @@
     --shadow-md:0 2px 4px rgba(0,0,0,.08);
     --shadow-lg:0 8px 28px rgba(0,0,0,.16);
 
-    --serif:'Fraunces', 'Iowan Old Style', 'Palatino Linotype', serif;
-    --sans:'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-    --mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    /* FONT TO EDIT — every heading and body font in the app pulls from
+       these two lines (they're set to match right now). The browser tries
+       each name left-to-right and uses the first one it finds installed,
+       falling back to Jost (loaded above) if none are. To switch fonts
+       everywhere, replace 'Futura' with your preferred font's name here. */
+    --serif:'Futura', 'Century Gothic', 'Malgun Gothic', 'Jost', 'Trebuchet MS', sans-serif;
+    --sans:'Futura', 'Century Gothic', 'Malgun Gothic', 'Jost', 'Trebuchet MS', sans-serif;
+    --mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace; /* small data labels only, e.g. dice/timer text */
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -671,6 +726,7 @@
 </head>
 <body>
 
+<!-- APP TITLE TO EDIT: the maroon banner text shown on every screen -->
 <header class="app-banner">GeoLudo</header>
 
 <div id="app">
@@ -798,6 +854,19 @@
      DATA
   ============================================================ */
 
+  /* TOPICS TO EDIT — one entry per topic card on the "Choose your topics"
+     screen, in the order they appear (top-left to bottom-right).
+       id      → an internal short name. Must be unique. Also used as the
+                 key into DEFAULT_QUESTIONS below, so if you rename an id
+                 here, rename it in the question bank too, or that topic's
+                 questions won't be found.
+       icon    → a small inline SVG icon. To swap an icon for an emoji
+                 instead, just replace the whole <svg>...</svg> string with
+                 an emoji character in quotes, e.g. icon:'🧱'.
+       name    → the bold title shown on the card.
+       desc    → the gray subtitle line under the name.
+       intro   → true/false — true means this topic is included when a
+                 player clicks the "Intro set" quick-select button. */
   const TOPICS = [
     { id:'deposition',   icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 7h18"/><path d="M3 12h14"/><path d="M3 17h18"/><circle cx="8" cy="9.5" r=".7" fill="currentColor" stroke="none"/><circle cx="15" cy="14.5" r=".7" fill="currentColor" stroke="none"/><circle cx="10" cy="19.5" r=".7" fill="currentColor" stroke="none"/></svg>', name:'Soil Deposition and Formation', desc:'How residual and transported soils form', intro:true },
     { id:'investigation',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 8h16"/><path d="M12 8v12"/><path d="M9 20h6"/><path d="M12 3l2.2 3.4h-4.4L12 3z" fill="currentColor" stroke="none"/></svg>', name:'Subsurface Investigation', desc:'Borings, sampling, SPT and CPT', intro:true },
@@ -812,12 +881,33 @@
     { id:'lateral',      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v14h14"/><path d="M9 17l9-9" stroke-width="1" opacity=".45"/></svg>', name:'Earth Pressure and Retaining Wall Design', desc:'Rankine, Coulomb, retaining walls', intro:false },
   ];
 
+  // Difficulty level ids — 'level1' is easiest (near the start of the
+  // board), 'level4' is hardest (right before the center). Renaming these
+  // means renaming them everywhere they appear in DEFAULT_QUESTIONS below too.
   const TIERS = ['level1','level2','level3','level4'];
   const TIER_LABEL = { level1:'Level 1', level2:'Level 2', level3:'Level 3', level4:'Level 4' };
   const TIER_COLOR = { level1:'var(--topsoil)', level2:'var(--subsoil)', level3:'var(--weathered)', level4:'var(--bedrock)' };
 
   function Q(q, options, correct){ return { q, options, correct }; }
 
+  /* QUESTION BANK TO EDIT — this is every quiz question in the game, the
+     defaults every player starts with (before any in-game "Edit questions"
+     or "Import JSON" changes). It's organized as:
+
+       topic_id: {
+         level1: [ Q("question text", ["choice A","choice B","choice C","choice D"], correctIndex), ... ],
+         level2: [ ... ], level3: [ ... ], level4: [ ... ]
+       }
+
+     correctIndex is which choice is right, counting from 0 — so 0 means
+     the first option, 1 the second, and so on. Every topic needs all four
+     levels present (even if a level only has one question), or the game
+     will error when that level comes up for that topic.
+
+     Easiest way to add or edit questions without touching this code:
+     use the in-game "Edit questions" button, or edit a JSON export of
+     this same data and re-import it there — no need to come back here
+     unless you want your changes to be the file's built-in defaults. */
   const DEFAULT_QUESTIONS = {
     deposition: { level1:[
         Q('Which process breaks down parent rock into soil particles through physical weathering?', ['Mechanical disintegration from temperature change and frost action','Chemical dissolution only','Biological decay only','Magnetic separation'],0),
@@ -983,6 +1073,12 @@
   function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function escapeAttr(s){ return escapeHtml(s).replace(/"/g,'&quot;'); }
 
+  /* PLAYER COLORS TO EDIT — the four default pawn colors and names, in
+     board order (top-left, top-right, bottom-left, bottom-right). Change
+     "hex" to any color code, or "name" to relabel a player (e.g. "Team A"
+     instead of "Green"). Don't change or remove "id" — the board geometry
+     further down looks pawns up by these exact ids (green/yellow/red/blue).
+     Players can also do this themselves in-game via "Customize colors". */
   const COLORS = [
     { id:'green',  name:'Green',  hex:'#2fa84f' },
     { id:'yellow', name:'Yellow', hex:'#f0c419' },
@@ -1236,6 +1332,15 @@
 
   /* ============================================================
      BOARD GEOMETRY
+     ------------------------------------------------------------
+     Everything from here to the end of the file is the actual game
+     engine — board layout math, dice rolling, turn order, capture
+     rules, and the question-editor UI. Nothing here is meant to be
+     edited for day-to-day customization (that's all covered by the
+     TOPICS, QUESTION BANK, PLAYER COLORS, and CSS sections above).
+     Change things below only if you're comfortable reading JavaScript,
+     since the board is generated from these numbers and a small typo
+     can misplace the whole track.
   ============================================================ */
 
   const CELL = 48;
@@ -1357,7 +1462,7 @@
         fill = COLORS.find(c=>c.id===colorId).hex;
       }
       const cls = 'cell-track' + (isQ?' q':'');
-      svg += `<rect x="${p.x-CELL/2}" y="${p.y-CELL/2}" width="${CELL}" height="${CELL}" class="${cls}" ${fill?`fill="${fill}"`:''}/>`;
+      svg += `<rect x="${p.x-CELL/2}" y="${p.y-CELL/2}" width="${CELL}" height="${CELL}" class="${cls}" ${fill?`style="fill:${fill}"`:''}/>`;
       if(isQ) svg += `<text x="${p.x}" y="${p.y+6}" text-anchor="middle" font-family="var(--mono)" font-weight="600" font-size="16" fill="#7a5b28">?</text>`;
       if(isStar) svg += starMark(p.x, p.y);
     }
