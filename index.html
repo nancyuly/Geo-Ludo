@@ -39,6 +39,14 @@
      To use a different Google Font, swap "Jost" for its name here AND in the
      --serif / --sans variables a few lines down. -->
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- STUDENT LOGIN TO EDIT — these three scripts load Firebase, the free
+     service this game uses for student accounts and score storage.
+     You don't need to touch these lines; just follow the setup steps to
+     get a config object and paste it into the placeholder further down. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     /* MAIN COLORS TO EDIT — the page background and card backgrounds.
@@ -117,6 +125,37 @@
     font-size:15px;
     letter-spacing:.14em;
     text-transform:uppercase;
+  }
+
+  /* PDF REFERENCE TO EDIT — this floating button stays visible on every
+     screen, including mid-game, so students can pull up reference
+     material without losing their place. It links to a PDF file next to
+     this HTML file — see the href in the markup near <body> to point it
+     at a different filename. */
+  .reference-fab{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    z-index:40;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--core);
+    color:#fff;
+    text-decoration:none;
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:14px;
+    padding:13px 20px;
+    border-radius:999px;
+    box-shadow:var(--shadow-lg);
+    transition:background .15s, transform .15s;
+  }
+  .reference-fab:hover{ background:var(--core-2); transform:translateY(-1px); }
+  .reference-fab svg{ width:18px; height:18px; flex-shrink:0; }
+  @media (max-width:480px){
+    .reference-fab{ padding:12px 16px; font-size:13px; bottom:14px; right:14px; }
+    .reference-fab .fab-label{ display:none; } /* icon-only on very small screens */
   }
   .hidden{display:none !important;}
   button{font-family:inherit;cursor:pointer;}
@@ -691,7 +730,7 @@
   .editor-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
   .editor-head h2{font-family:var(--serif);font-size:20px;margin:0;}
   .editor-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
-  .editor-tabs .chip-btn.active-tab{border-color:var(--core);color:var(--core);background:var(--core-dim);}
+  .chip-btn.active-tab{border-color:var(--core);color:var(--core);background:var(--core-dim);}
   .editor-q-card{background:var(--bg-card);border:1px solid var(--rule);border-radius:10px;padding:14px;margin-bottom:12px;}
   .editor-input{width:100%;background:var(--bg);border:1px solid var(--rule);color:var(--ink);border-radius:6px;padding:8px 10px;font-family:var(--sans);font-size:13.5px;margin-bottom:8px;resize:vertical;}
   .editor-opt-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
@@ -722,6 +761,73 @@
     max-width:60ch;
     line-height:1.6;
   }
+
+  /* ---------- login / account / dashboard ---------- */
+  .account-bar{
+    position:fixed;
+    top:14px;
+    right:16px;
+    z-index:41;
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .account-chip{
+    background:rgba(255,255,255,.15);
+    color:#fff;
+    border:1px solid rgba(255,255,255,.4);
+    padding:7px 14px;
+    border-radius:20px;
+    font-size:12.5px;
+    font-family:var(--sans);
+    font-weight:600;
+    transition:background .15s;
+  }
+  .account-chip:hover{background:rgba(255,255,255,.28);}
+
+  .auth-card{
+    max-width:420px;
+    margin:60px auto 0;
+    background:var(--bg-card);
+    border:1.5px solid var(--rule);
+    border-radius:var(--radius-md);
+    padding:30px;
+  }
+  .auth-tabs{display:flex;gap:8px;margin-bottom:20px;}
+  .auth-tabs .chip-btn.active-tab{border-color:var(--core);color:var(--core);background:var(--core-dim);}
+  .auth-field{margin-bottom:14px;}
+  .auth-field label{display:block;font-size:12.5px;color:var(--ink-dim);margin-bottom:5px;font-weight:600;}
+  .auth-field input{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--rule);
+    color:var(--ink);
+    border-radius:6px;
+    padding:11px 12px;
+    font-family:var(--sans);
+    font-size:14px;
+  }
+  .auth-error{
+    color:var(--bad);
+    font-size:13px;
+    margin:2px 0 14px;
+    min-height:18px;
+  }
+
+  .stats-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .stats-table th, .stats-table td{
+    text-align:left;
+    padding:9px 10px;
+    border-bottom:1px solid var(--rule);
+  }
+  .stats-table th{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--ink-faint);
+    font-weight:600;
+    letter-spacing:.02em;
+  }
+  .stats-table tr:last-child td{border-bottom:none;}
 </style>
 </head>
 <body>
@@ -729,10 +835,57 @@
 <!-- APP TITLE TO EDIT: the maroon banner text shown on every screen -->
 <header class="app-banner">GeoLudo</header>
 
+<!-- PDF REFERENCE TO EDIT: change "reference.pdf" to your file's exact name.
+     Upload that PDF into the same GitHub repo as this index.html file
+     (same folder, no subfolder) so this link finds it. To remove the
+     button entirely, delete this whole <a> tag. -->
+<a class="reference-fab" href="reference.pdf" target="_blank" rel="noopener">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h6M9 8h2"/></svg>
+  <span class="fab-label">Reference</span>
+</a>
+
+<!-- STUDENT LOGIN TO EDIT — shows Sign out, plus My Stats and (for teachers) the
+     Dashboard button, once someone is signed in. Hidden until then. -->
+<div class="account-bar hidden" id="account-bar">
+  <button class="account-chip" id="btn-my-stats">My stats</button>
+  <button class="account-chip hidden" id="btn-dashboard">Dashboard</button>
+  <button class="account-chip" id="btn-sign-out">Sign out</button>
+</div>
+
 <div id="app">
 
+  <!-- ============ SCREEN 0: LOGIN ============ -->
+  <section class="screen" id="screen-login">
+    <div class="wrap">
+      <h1 class="title">Sign in to play</h1>
+      <p class="kicker">Signing in saves your games played, wins, and per-topic accuracy so you (and your instructor) can track your progress.</p>
+
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button class="chip-btn active-tab" id="tab-signin">Sign in</button>
+          <button class="chip-btn" id="tab-signup">Create account</button>
+        </div>
+
+        <div class="auth-field hidden" id="field-name">
+          <label>Your name</label>
+          <input type="text" id="auth-name" placeholder="e.g. Jordan Lee" autocomplete="name">
+        </div>
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="auth-email" placeholder="you@school.edu" autocomplete="email">
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <input type="password" id="auth-password" placeholder="At least 6 characters" autocomplete="current-password">
+        </div>
+        <div class="auth-error" id="auth-error"></div>
+        <button class="primary-btn" id="auth-submit" style="width:100%;">Sign in</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ SCREEN 1: TOPICS ============ -->
-  <section class="screen" id="screen-topics">
+  <section class="screen hidden" id="screen-topics">
     <div class="wrap">
       <h1 class="title">Choose your topics</h1>
 
@@ -787,29 +940,66 @@
       <p class="kicker" id="setup-kicker">Solo play is a self-paced core sample — race the die to get all four pawns home. Two to four players share one device, taking turns.</p>
 
       <div class="setup-section">
-        <h2>Players</h2>
-        <p class="sub">How many are digging?</p>
-        <div class="player-count-row" id="player-count-row"></div>
-      </div>
-
-      <div class="setup-section">
-        <h2>Colors</h2>
-        <p class="sub" id="colors-sub">Assigned in turn order.</p>
-        <div class="player-swatches" id="player-swatches"></div>
-        <button class="chip-btn" id="btn-customize-colors" style="margin-top:12px;">Customize colors</button>
-      </div>
-
-      <div class="setup-section">
-        <h2>Timer</h2>
-        <div class="toggle-row">
-          <button class="toggle-switch" id="timer-toggle"></button>
-          <div class="label">Enable a 45-second answer timer<small>Competitive mode — run out the clock and it counts as a miss.</small></div>
+        <h2>How are you playing?</h2>
+        <div class="topic-actions">
+          <button class="chip-btn active-tab" id="mode-local">Local (one device)</button>
+          <button class="chip-btn" id="mode-online">Online (room code)</button>
         </div>
       </div>
 
-      <div class="bottom-bar">
-        <button class="ghost-btn" id="btn-back-topics">Back</button>
-        <button class="primary-btn" id="btn-begin">Begin excavation</button>
+      <div id="local-setup">
+        <div class="setup-section">
+          <h2>Players</h2>
+          <p class="sub">How many are digging?</p>
+          <div class="player-count-row" id="player-count-row"></div>
+        </div>
+
+        <div class="setup-section">
+          <h2>Colors</h2>
+          <p class="sub" id="colors-sub">Assigned in turn order.</p>
+          <div class="player-swatches" id="player-swatches"></div>
+          <button class="chip-btn" id="btn-customize-colors" style="margin-top:12px;">Customize colors</button>
+        </div>
+
+        <div class="setup-section">
+          <h2>Timer</h2>
+          <div class="toggle-row">
+            <button class="toggle-switch" id="timer-toggle"></button>
+            <div class="label">Enable a 45-second answer timer<small>Competitive mode — run out the clock and it counts as a miss.</small></div>
+          </div>
+        </div>
+
+        <div class="bottom-bar">
+          <button class="ghost-btn" id="btn-back-topics">Back</button>
+          <button class="primary-btn" id="btn-begin">Begin excavation</button>
+        </div>
+      </div>
+
+      <div id="online-setup" class="hidden">
+        <div class="setup-section" id="online-choice">
+          <h2>Create or join a room</h2>
+          <p class="sub">Each room is its own separate game — as many rooms as you like can run at the same time.</p>
+          <div class="topic-actions" style="margin-bottom:16px;">
+            <button class="primary-btn" id="btn-create-room">Create a room</button>
+          </div>
+          <div class="auth-field" style="max-width:260px;">
+            <label>Or join with a code</label>
+            <input type="text" id="join-code-input" maxlength="4" placeholder="ABCD" style="text-transform:uppercase;letter-spacing:.1em;font-weight:700;">
+          </div>
+          <button class="ghost-btn" id="btn-join-room">Join room</button>
+          <div class="auth-error" id="room-error"></div>
+        </div>
+
+        <div class="setup-section hidden" id="online-lobby">
+          <h2>Room code: <span id="lobby-code" style="color:var(--core);font-family:var(--mono);"></span></h2>
+          <p class="sub">Share this code with your group. Everyone needs to be signed in and on this game's page.</p>
+          <div class="player-swatches" id="lobby-players"></div>
+          <p class="sub" id="lobby-status" style="margin-top:14px;"></p>
+          <div class="bottom-bar">
+            <button class="ghost-btn" id="btn-leave-room">Leave room</button>
+            <button class="primary-btn hidden" id="btn-start-room">Start game</button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -849,6 +1039,76 @@
 
 <script>
 (function(){
+
+  /* ============================================================
+     STUDENT LOGIN — SETUP REQUIRED
+     ------------------------------------------------------------
+     1. Go to https://console.firebase.google.com, sign in with any
+        Google account, and click "Add project" (the free plan covers a
+        class-sized group of students easily).
+     2. In your new project, go to Build → Authentication → Get started,
+        and enable the "Email/Password" sign-in method.
+     3. Go to Build → Firestore Database → Create database (start in
+        "production mode" is fine — the security rules below handle it).
+     4. Back in Project Settings (gear icon, top left) → General → scroll
+        to "Your apps" → click the </> (web) icon → register the app
+        (any nickname) → it will show you a firebaseConfig object.
+        Copy that whole object and paste it in place of the placeholder
+        just below, replacing every "REPLACE_ME" value.
+     5. In Firestore → Rules, paste this (swap in your own email so you
+        can see the class dashboard — add more emails, comma-separated,
+        for co-instructors):
+
+          rules_version = '2';
+          service cloud.firestore {
+            match /databases/{database}/documents {
+              match /students/{studentId} {
+                allow read: if request.auth != null &&
+                  (request.auth.uid == studentId ||
+                   request.auth.token.email in ['YOUR_EMAIL@example.com']);
+                allow write: if request.auth != null && request.auth.uid == studentId;
+              }
+              match /rooms/{roomId} {
+                allow read, write: if request.auth != null;
+              }
+            }
+          }
+
+     6. Add those same instructor email(s) to ADMIN_EMAILS just below, so
+        the in-game "Dashboard" button shows up for you.
+
+     A note on the "rooms" rule above: it lets any signed-in student read
+     and write any room, which is what lets a whole lab group of separate
+     browsers sync a live game together. It's intentionally simple rather
+     than locking each write to "only the current player" — enough for a
+     trusted classroom setting, not meant to stop a determined cheater.
+
+     Until you complete these steps, the sign-in screen will show a
+     connection error — that's expected, and everything else in the file
+     still works fine once real credentials are in place.
+  ============================================================ */
+
+  const firebaseConfig = {
+    apiKey: "REPLACE_ME",
+    authDomain: "REPLACE_ME.firebaseapp.com",
+    projectId: "REPLACE_ME",
+    storageBucket: "REPLACE_ME.appspot.com",
+    messagingSenderId: "REPLACE_ME",
+    appId: "REPLACE_ME",
+  };
+  const ADMIN_EMAILS = ["YOUR_EMAIL@example.com"]; // instructor emails that see the Dashboard button
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  let currentUser = null;      // the signed-in Firebase user, once loaded
+  let studentDoc = null;       // that user's Firestore data, kept in sync locally
+
+  function blankStudentDoc(name){
+    const topicStats = {};
+    TOPICS.forEach(t=>{ topicStats[t.id] = { correct: 0, incorrect: 0 }; });
+    return { name: name || 'Student', gamesPlayed: 0, gamesWon: 0, topicStats };
+  }
 
   /* ============================================================
      DATA
@@ -1126,6 +1386,9 @@
     movable: [],        // list of pawn indices for current player
     askedQuestionIds: new Set(),
     gameOver: false,
+    mode: 'local',        // 'local' (hotseat) or 'online' (synced via a room)
+    roomCode: null,
+    room: null,
   };
 
   const ENTRY = { green:0, yellow:14, blue:28, red:42 };
@@ -1232,6 +1495,8 @@
   document.getElementById('btn-back-topics').addEventListener('click', ()=> showScreen('topics'));
   document.getElementById('btn-customize-colors').addEventListener('click', openColorEditor);
   document.getElementById('btn-begin').addEventListener('click', ()=>{
+    leaveOnlineGame();
+    state.mode = 'local';
     setupPlayers();
     showScreen('game');
     buildBoard();
@@ -1298,7 +1563,7 @@
   ============================================================ */
 
   function showScreen(name){
-    ['topics','setup','game'].forEach(s=>{
+    ['login','topics','setup','game'].forEach(s=>{
       const el = document.getElementById('screen-'+s);
       el.classList.toggle('hidden', s!==name);
       if(s===name){
@@ -1307,7 +1572,351 @@
         el.classList.add('screen-enter');
       }
     });
+    document.getElementById('account-bar').classList.toggle('hidden', name==='login');
     window.scrollTo(0,0);
+  }
+
+  /* ============================================================
+     STUDENT LOGIN — sign in / sign up / sign out
+  ============================================================ */
+
+  let authMode = 'signin'; // or 'signup'
+  const tabSignin = document.getElementById('tab-signin');
+  const tabSignup = document.getElementById('tab-signup');
+  const fieldName = document.getElementById('field-name');
+  const authSubmit = document.getElementById('auth-submit');
+  const authError = document.getElementById('auth-error');
+
+  function setAuthMode(mode){
+    authMode = mode;
+    tabSignin.classList.toggle('active-tab', mode==='signin');
+    tabSignup.classList.toggle('active-tab', mode==='signup');
+    fieldName.classList.toggle('hidden', mode!=='signup');
+    authSubmit.textContent = mode==='signup' ? 'Create account' : 'Sign in';
+    authError.textContent = '';
+  }
+  tabSignin.addEventListener('click', ()=> setAuthMode('signin'));
+  tabSignup.addEventListener('click', ()=> setAuthMode('signup'));
+
+  authSubmit.addEventListener('click', ()=>{
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    const name = document.getElementById('auth-name').value.trim();
+    authError.textContent = '';
+    if(!email || !password){ authError.textContent = 'Enter an email and password.'; return; }
+    if(authMode==='signup' && !name){ authError.textContent = 'Enter your name.'; return; }
+
+    authSubmit.disabled = true;
+    const done = ()=>{ authSubmit.disabled = false; };
+
+    if(authMode==='signup'){
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(cred => db.collection('students').doc(cred.user.uid).set(blankStudentDoc(name)))
+        .catch(err => { authError.textContent = err.message; })
+        .finally(done);
+    } else {
+      auth.signInWithEmailAndPassword(email, password)
+        .catch(err => { authError.textContent = err.message; })
+        .finally(done);
+    }
+  });
+
+  document.getElementById('btn-sign-out').addEventListener('click', ()=> auth.signOut());
+
+  auth.onAuthStateChanged(user => {
+    if(user){
+      currentUser = user;
+      db.collection('students').doc(user.uid).get().then(doc=>{
+        studentDoc = doc.exists ? doc.data() : blankStudentDoc(user.email);
+        if(!doc.exists) db.collection('students').doc(user.uid).set(studentDoc);
+        document.getElementById('btn-dashboard').classList.toggle('hidden', !ADMIN_EMAILS.includes(user.email));
+        showScreen('topics');
+      });
+    } else {
+      currentUser = null;
+      studentDoc = null;
+      showScreen('login');
+    }
+  });
+
+  /* ============================================================
+     STUDENT LOGIN — recording progress to Firestore
+  ============================================================ */
+
+  function recordGameStart(){
+    if(!currentUser) return;
+    if(studentDoc) studentDoc.gamesPlayed = (studentDoc.gamesPlayed||0) + 1;
+    db.collection('students').doc(currentUser.uid).update({
+      gamesPlayed: firebase.firestore.FieldValue.increment(1)
+    });
+  }
+  function recordGameWin(){
+    if(!currentUser) return;
+    if(studentDoc) studentDoc.gamesWon = (studentDoc.gamesWon||0) + 1;
+    db.collection('students').doc(currentUser.uid).update({
+      gamesWon: firebase.firestore.FieldValue.increment(1)
+    });
+  }
+  function recordAnswer(topicId, correct){
+    if(!currentUser) return;
+    const field = correct ? 'correct' : 'incorrect';
+    if(studentDoc){
+      studentDoc.topicStats = studentDoc.topicStats || {};
+      studentDoc.topicStats[topicId] = studentDoc.topicStats[topicId] || {correct:0, incorrect:0};
+      studentDoc.topicStats[topicId][field] += 1;
+    }
+    db.collection('students').doc(currentUser.uid).update({
+      [`topicStats.${topicId}.${field}`]: firebase.firestore.FieldValue.increment(1)
+    });
+  }
+
+  function statsRows(doc){
+    let totalCorrect=0, totalIncorrect=0;
+    const rows = TOPICS.map(t=>{
+      const s = (doc.topicStats && doc.topicStats[t.id]) || {correct:0, incorrect:0};
+      totalCorrect += s.correct; totalIncorrect += s.incorrect;
+      const total = s.correct + s.incorrect;
+      const pct = total>0 ? Math.round(100*s.correct/total)+'%' : '—';
+      return `<tr><td>${t.name}</td><td>${s.correct}</td><td>${s.incorrect}</td><td>${pct}</td></tr>`;
+    }).join('');
+    const overallTotal = totalCorrect+totalIncorrect;
+    const overallPct = overallTotal>0 ? Math.round(100*totalCorrect/overallTotal)+'%' : '—';
+    return { rows, overallPct, totalCorrect, totalIncorrect };
+  }
+
+  document.getElementById('btn-my-stats').addEventListener('click', ()=>{
+    if(!studentDoc) return;
+    const { rows, overallPct } = statsRows(studentDoc);
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-card" style="max-width:560px;">
+        <div class="editor-head">
+          <h2>${escapeHtml(studentDoc.name)}'s stats</h2>
+          <button class="ghost-btn" id="stats-close" style="padding:9px 16px;">Close</button>
+        </div>
+        <p class="editor-note" style="margin-top:0;">Games played: <b>${studentDoc.gamesPlayed}</b> &middot; Games won: <b>${studentDoc.gamesWon}</b> &middot; Overall accuracy: <b>${overallPct}</b></p>
+        <div style="overflow-x:auto;">
+          <table class="stats-table">
+            <thead><tr><th>Topic</th><th>Correct</th><th>Wrong</th><th>Accuracy</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+    modalRoot.appendChild(overlay);
+    overlay.querySelector('#stats-close').addEventListener('click', ()=> overlay.remove());
+  });
+
+  document.getElementById('btn-dashboard').addEventListener('click', ()=>{
+    db.collection('students').get().then(snap=>{
+      const students = [];
+      snap.forEach(doc=> students.push(doc.data()));
+      students.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+      const rows = students.map(s=>{
+        const { overallPct } = statsRows(s);
+        return `<tr><td>${escapeHtml(s.name||'—')}</td><td>${s.gamesPlayed||0}</td><td>${s.gamesWon||0}</td><td>${overallPct}</td></tr>`;
+      }).join('') || '<tr><td colspan="4">No students yet.</td></tr>';
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal-card" style="max-width:640px;max-height:80vh;overflow-y:auto;">
+          <div class="editor-head">
+            <h2>Class dashboard</h2>
+            <button class="ghost-btn" id="dash-close" style="padding:9px 16px;">Close</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="stats-table">
+              <thead><tr><th>Name</th><th>Games played</th><th>Games won</th><th>Overall accuracy</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+      modalRoot.appendChild(overlay);
+      overlay.querySelector('#dash-close').addEventListener('click', ()=> overlay.remove());
+    });
+  });
+
+  /* ============================================================
+     ONLINE ROOMS — create/join, lobby, and live turn syncing.
+     A "room" is one document in the "rooms" Firestore collection, keyed
+     by its 4-letter code. Any number of rooms can run at once — each is
+     independent, so four lab groups just means four separate room docs.
+     Trust model: whichever browser is taking its turn computes the move
+     locally (dice, capture, win-check — all the same logic as local
+     play) and writes the result to the room doc; everyone else just
+     displays whatever they receive. Good enough for a classroom game;
+     not meant to resist a determined cheater.
+  ============================================================ */
+
+  const modeLocal = document.getElementById('mode-local');
+  const modeOnline = document.getElementById('mode-online');
+  const localSetup = document.getElementById('local-setup');
+  const onlineSetup = document.getElementById('online-setup');
+  const onlineChoice = document.getElementById('online-choice');
+  const onlineLobby = document.getElementById('online-lobby');
+  const roomError = document.getElementById('room-error');
+
+  modeLocal.addEventListener('click', ()=>{
+    modeLocal.classList.add('active-tab'); modeOnline.classList.remove('active-tab');
+    localSetup.classList.remove('hidden'); onlineSetup.classList.add('hidden');
+  });
+  modeOnline.addEventListener('click', ()=>{
+    modeOnline.classList.add('active-tab'); modeLocal.classList.remove('active-tab');
+    onlineSetup.classList.remove('hidden'); localSetup.classList.add('hidden');
+  });
+
+  function roomCode(){
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I, easier to read aloud
+    let s = '';
+    for(let i=0;i<4;i++) s += chars[Math.floor(Math.random()*chars.length)];
+    return s;
+  }
+
+  let roomUnsub = null; // unsubscribe function for the live room listener
+
+  function showLobby(code){
+    onlineChoice.classList.add('hidden');
+    onlineLobby.classList.remove('hidden');
+    document.getElementById('lobby-code').textContent = code;
+    state.roomCode = code;
+    if(roomUnsub) roomUnsub();
+    roomUnsub = db.collection('rooms').doc(code).onSnapshot(snap=>{
+      if(!snap.exists) return;
+      const room = snap.data();
+      state.room = room;
+      if(room.status === 'waiting'){
+        renderLobbyPlayers(room);
+      } else if(room.status === 'playing'){
+        if(document.getElementById('screen-game').classList.contains('hidden')){
+          enterOnlineGame(room);
+        } else {
+          applyRoomUpdate(room);
+        }
+      } else if(room.status === 'finished' && !state.gameOver){
+        applyRoomUpdate(room, true);
+        state.gameOver = true;
+        const winner = state.players.find(p=>p.uid===room.winnerUid);
+        if(winner) showWin(winner);
+      }
+    });
+  }
+
+  function renderLobbyPlayers(room){
+    const wrap = document.getElementById('lobby-players');
+    wrap.innerHTML = '';
+    room.players.forEach(p=>{
+      const c = COLORS.find(x=>x.id===p.color);
+      const card = document.createElement('div');
+      card.className = 'swatch-card';
+      card.innerHTML = `<div class="swatch-dot" style="background:${c.hex}"></div>
+        <div><div class="name">${escapeHtml(p.name)}</div><div class="sub-label">${p.uid===room.hostUid?'Host':'Player'}</div></div>`;
+      wrap.appendChild(card);
+    });
+    const isHost = currentUser && currentUser.uid===room.hostUid;
+    const startBtn = document.getElementById('btn-start-room');
+    startBtn.classList.toggle('hidden', !isHost);
+    startBtn.disabled = room.players.length < 2;
+    document.getElementById('lobby-status').textContent = isHost
+      ? (room.players.length<2 ? 'Waiting for at least one more player…' : 'Ready — start whenever your group has joined.')
+      : 'Waiting for the host to start the game…';
+  }
+
+  document.getElementById('btn-create-room').addEventListener('click', ()=>{
+    if(state.selectedTopics.size===0){ roomError.textContent = 'Pick at least one topic first.'; return; }
+    const code = roomCode();
+    const me = { uid: currentUser.uid, name: (studentDoc&&studentDoc.name)||currentUser.email, color: COLORS[0].id,
+      pawns: [{steps:0},{steps:0},{steps:0},{steps:0}] };
+    db.collection('rooms').doc(code).set({
+      code, hostUid: currentUser.uid, status: 'waiting',
+      selectedTopics: Array.from(state.selectedTopics),
+      timerEnabled: state.timerEnabled,
+      players: [me],
+      currentPlayer: 0, dice: null, log: [], winnerUid: null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }).then(()=> showLobby(code));
+  });
+
+  document.getElementById('btn-join-room').addEventListener('click', ()=>{
+    const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+    roomError.textContent = '';
+    if(code.length!==4){ roomError.textContent = 'Enter the 4-character room code.'; return; }
+    const ref = db.collection('rooms').doc(code);
+    ref.get().then(snap=>{
+      if(!snap.exists){ roomError.textContent = 'No room found with that code.'; return; }
+      const room = snap.data();
+      if(room.status!=='waiting'){ roomError.textContent = 'That game has already started.'; return; }
+      if(room.players.some(p=>p.uid===currentUser.uid)){ showLobby(code); return; }
+      if(room.players.length>=4){ roomError.textContent = 'That room is full.'; return; }
+      const nextColor = COLORS[room.players.length].id;
+      const me = { uid: currentUser.uid, name: (studentDoc&&studentDoc.name)||currentUser.email, color: nextColor,
+        pawns: [{steps:0},{steps:0},{steps:0},{steps:0}] };
+      ref.update({ players: firebase.firestore.FieldValue.arrayUnion(me) }).then(()=> showLobby(code));
+    });
+  });
+
+  document.getElementById('btn-leave-room').addEventListener('click', ()=>{
+    leaveOnlineGame();
+  });
+
+  document.getElementById('btn-start-room').addEventListener('click', ()=>{
+    db.collection('rooms').doc(state.roomCode).update({ status: 'playing' });
+  });
+
+  function enterOnlineGame(room){
+    state.mode = 'online';
+    state.selectedTopics = new Set(room.selectedTopics);
+    state.timerEnabled = room.timerEnabled;
+    state.players = room.players.map(p=>({ color:p.color, hex:COLORS.find(c=>c.id===p.color).hex, name:p.name, uid:p.uid, pawns: p.pawns.map(pw=>({steps:pw.steps})) }));
+    state.currentPlayer = room.currentPlayer;
+    state.gameOver = false;
+    state.askedQuestionIds = new Set();
+    lastLogLen = 0;
+    showScreen('game');
+    buildBoard();
+    logClear();
+    log('Online game started.');
+    recordGameStart();
+    startTurn();
+  }
+
+  // Applies an incoming room update to local state and re-renders. Called
+  // for every player, including the one who caused the update — harmless,
+  // just a little redundant on the acting player's own browser.
+  function applyRoomUpdate(room, skipTurnReset){
+    state.players.forEach((p,i)=>{
+      const rp = room.players[i];
+      if(rp) rp.pawns.forEach((pw,j)=>{ p.pawns[j].steps = pw.steps; });
+    });
+    state.currentPlayer = room.currentPlayer;
+    syncLogFrom(room);
+    renderPawns();
+    if(!skipTurnReset) startTurn();
+  }
+
+  let lastLogLen = 0;
+  function syncLogFrom(room){
+    const entries = room.log || [];
+    for(let i=lastLogLen; i<entries.length; i++) renderLogLine(entries[i]);
+    lastLogLen = entries.length;
+  }
+
+  // Pushes the authoritative post-move state to the room doc. Only ever
+  // called by whichever browser just took the action.
+  function pushRoomState(extra){
+    if(state.mode!=='online' || !state.roomCode) return;
+    const players = state.players.map(p=>({ uid:p.uid, name:p.name, color:p.color, pawns: p.pawns.map(pw=>({steps:pw.steps})) }));
+    db.collection('rooms').doc(state.roomCode).update(Object.assign({
+      players, currentPlayer: state.currentPlayer,
+    }, extra||{}));
+  }
+  function pushLogLine(line){
+    if(state.mode!=='online' || !state.roomCode) return;
+    db.collection('rooms').doc(state.roomCode).update({ log: firebase.firestore.FieldValue.arrayUnion(line) });
+  }
+  function isMyTurnOnline(){
+    if(state.mode!=='online') return true;
+    const pl = state.players[state.currentPlayer];
+    return pl && pl.uid === currentUser.uid;
   }
 
   /* ============================================================
@@ -1328,6 +1937,7 @@
     state.askedQuestionIds = new Set();
     logClear();
     log(`The dig begins. ${state.players.length===1?'Solo run':state.players.length+' players'} · ${state.selectedTopics.size} topic${state.selectedTopics.size===1?'':'s'} selected.`);
+    recordGameStart();
   }
 
   /* ============================================================
@@ -1571,11 +2181,16 @@
     turnDot.style.background = pl.hex;
     document.querySelector('.turn-card').style.borderLeftColor = pl.hex;
     diceFace.textContent = '–';
-    state.canRoll = true;
     state.awaitingSelection = false;
     state.movable = [];
-    rollBtn.disabled = false;
-    hintLine.textContent = allInBase(pl) ? 'Roll a 6 to bring a pawn up from the yard.' : 'Roll the die to move.';
+    const myTurn = isMyTurnOnline();
+    state.canRoll = myTurn;
+    rollBtn.disabled = !myTurn;
+    if(!myTurn){
+      hintLine.textContent = `Waiting for ${pl.name} to roll…`;
+    } else {
+      hintLine.textContent = allInBase(pl) ? 'Roll a 6 to bring a pawn up from the yard.' : 'Roll the die to move.';
+    }
     renderPawns();
   }
 
@@ -1708,6 +2323,7 @@
 
     if(checkWin(pl)){
       state.gameOver = true;
+      pushRoomState({ status:'finished', winnerUid: pl.uid || null });
       showWin(pl);
       return;
     }
@@ -1716,8 +2332,9 @@
       hintLine.textContent = 'Rolling a 6 — go again.';
       state.canRoll = true;
       rollBtn.disabled = false;
+      pushRoomState();
     } else {
-      setTimeout(nextTurn, 400);
+      setTimeout(()=>{ nextTurn(); pushRoomState(); }, 400);
     }
   }
 
@@ -1806,6 +2423,7 @@
       answered = true;
       if(timerInterval) clearInterval(timerInterval);
       const correct = chosenIdx === question.correct;
+      recordAnswer(topic.id, correct);
       const btns = optWrap.querySelectorAll('.q-option');
       btns.forEach((b,i)=>{
         b.disabled = true;
@@ -1996,6 +2614,7 @@
   ============================================================ */
 
   function showWin(pl){
+    if(state.mode!=='online' || pl.uid===currentUser.uid) recordGameWin();
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
@@ -2009,12 +2628,25 @@
     modalRoot.appendChild(overlay);
     overlay.querySelector('#win-restart').addEventListener('click', ()=>{
       overlay.remove();
+      leaveOnlineGame();
       showScreen('topics');
     });
   }
 
+  function leaveOnlineGame(){
+    if(roomUnsub){ roomUnsub(); roomUnsub = null; }
+    state.mode = 'local';
+    state.roomCode = null;
+    state.room = null;
+    onlineLobby.classList.add('hidden');
+    onlineChoice.classList.remove('hidden');
+  }
+
   document.getElementById('btn-restart').addEventListener('click', ()=>{
-    if(confirm('Start a new game? Current progress will be lost.')) showScreen('topics');
+    if(confirm('Start a new game? Current progress will be lost.')){
+      leaveOnlineGame();
+      showScreen('topics');
+    }
   });
 
   /* ============================================================
@@ -2022,13 +2654,17 @@
   ============================================================ */
 
   const logList = document.getElementById('log-list');
-  function log(msg){
+  function renderLogLine(msg){
     const el = document.createElement('div');
     el.className = 'log-entry';
     el.innerHTML = msg;
     logList.insertBefore(el, logList.firstChild);
   }
-  function logClear(){ logList.innerHTML = ''; }
+  function log(msg){
+    renderLogLine(msg);
+    if(state.mode==='online' && isMyTurnOnline()) pushLogLine(msg);
+  }
+  function logClear(){ logList.innerHTML = ''; lastLogLen = 0; }
 
   /* ============================================================
      INIT
